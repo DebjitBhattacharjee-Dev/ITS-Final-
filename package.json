@@ -1,0 +1,9 @@
+{
+  "name": "its_ui_redesign",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix portal run build",
+    "dev": "npm --prefix portal run dev"
+  }
+}
