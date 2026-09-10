@@ -1,0 +1,17 @@
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+.DS_Store
+.cache
+.env
+.env.*
+node_modules/
+portal/node_modules/
+dist/
+portal/dist/
+*.log
+*.egg-info/
+site_config.json
+create_doctypes.py
