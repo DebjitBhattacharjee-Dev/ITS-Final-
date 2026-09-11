@@ -15,9 +15,20 @@
       ]"
     >
       <div class="p-3.5 border-b border-slate-200 flex items-center justify-between">
-        <span class="text-sm font-bold tracking-wider text-slate-600 uppercase">
-          WORKSPACES
-        </span>
+        <div class="flex items-center space-x-2">
+          <span class="text-sm font-bold tracking-wider text-slate-600 uppercase">
+            WORKSPACES
+          </span>
+          <router-link 
+            to="/portal/dashboard"
+            @click="navStore.closeSidebar"
+            class="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+            :class="{ 'text-blue-600 bg-blue-50': route.path === '/portal/dashboard' }"
+            title="Workflow Dashboard"
+          >
+            <Home class="w-4 h-4" />
+          </router-link>
+        </div>
         <button 
           @click="navStore.closeSidebar"
           class="p-1 hover:bg-slate-100 text-slate-600 hover:text-slate-700 rounded transition-colors"
@@ -60,7 +71,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { X } from 'lucide-vue-next'
+import { X, Home } from 'lucide-vue-next'
 import { useNavigationStore } from '../../stores/navigation'
 import { usePermissionsStore } from '../../stores/permissions'
 

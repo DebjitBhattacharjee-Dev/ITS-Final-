@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AuthLayout from '../layouts/AuthLayout.vue'
 import PortalLayout from '../layouts/PortalLayout.vue'
 import PortalAccess from '../views/auth/PortalAccess.vue'
-import Dashboard from '../views/Dashboard.vue'
+import Dashboard from '../views/WorkflowDashboard.vue'
 import WorkspaceView from '../views/WorkspaceView.vue'
 import ModuleDetailView from '../views/ModuleDetailView.vue'
 import DocumentDetailView from '../views/DocumentDetailView.vue'
@@ -39,7 +39,7 @@ const routes = [
       {
         path: 'dashboard',
         name: 'Dashboard',
-        redirect: '/portal/project-management'
+        component: Dashboard
       },
       // Workspace 01: Project Management
       {
