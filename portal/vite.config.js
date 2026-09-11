@@ -15,7 +15,7 @@ export default defineConfig({
     proxy: getProxyOptions(),
   },
   build: {
-    outDir: '../its_ui_redesign/public/portal',
+    outDir: path.resolve(__dirname, '../its_ui_redesign/public/portal'),
     emptyOutDir: true,
     target: 'es2015',
     rollupOptions: {
