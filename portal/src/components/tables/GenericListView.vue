@@ -20,7 +20,7 @@
         <button
           v-if="meta?.is_tree"
           @click="toggleViewMode"
-          class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-medium flex items-center space-x-1.5 transition-colors border border-slate-300"
+          class="px-3 py-1.5 bg-white hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded text-xs font-medium flex items-center space-x-1.5 transition-colors border border-slate-200 hover:border-blue-200"
         >
           <Layers class="w-3.5 h-3.5" />
           <span>{{ viewMode === 'tree' ? 'List View' : 'Tree View' }}</span>
@@ -29,7 +29,7 @@
         <!-- Refresh Button -->
         <button
           @click="loadData"
-          class="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded text-xs font-medium flex items-center space-x-1.5 transition-colors shadow-2xs"
+          class="px-3 py-1.5 bg-white hover:bg-blue-50 hover:text-blue-700 border border-slate-200 hover:border-blue-200 text-slate-700 rounded text-xs font-medium flex items-center space-x-1.5 transition-colors shadow-2xs"
           title="Refresh List"
         >
           <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
@@ -568,7 +568,7 @@
               <tr
                 v-for="row in rows"
                 :key="row.name"
-                class="hover:bg-slate-50/80 transition-colors group"
+                class="hover:bg-blue-50/60 transition-colors group"
                 :class="{ 'bg-blue-50/40': selectedRowNames.includes(row.name) }"
               >
                 <!-- Row Selection Checkbox -->

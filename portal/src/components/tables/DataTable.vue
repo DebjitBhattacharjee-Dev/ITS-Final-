@@ -41,7 +41,7 @@
             v-for="(row, idx) in displayRows" 
             :key="row.name || idx"
             @click="$emit('row-click', row)"
-            class="hover:bg-slate-100 cursor-pointer transition-colors group"
+            class="hover:bg-blue-50/60 cursor-pointer transition-colors group"
           >
             <td 
               v-for="col in columns" 
@@ -66,7 +66,7 @@
         <button 
           @click="changePage(currentPage - 1)" 
           :disabled="currentPage <= 1"
-          class="px-2.5 py-1 bg-slate-100 hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:hover:bg-slate-100 rounded border border-slate-200/50 transition-colors"
+          class="px-2.5 py-1 bg-white hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-700 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-700 rounded border border-slate-200 transition-colors"
         >
           Previous
         </button>
@@ -74,7 +74,7 @@
         <button 
           @click="changePage(currentPage + 1)" 
           :disabled="currentPage >= maxPage"
-          class="px-2.5 py-1 bg-slate-100 hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:hover:bg-slate-100 rounded border border-slate-200/50 transition-colors"
+          class="px-2.5 py-1 bg-white hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-700 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-700 rounded border border-slate-200 transition-colors"
         >
           Next
         </button>

@@ -3,7 +3,7 @@
     <div class="flex items-center space-x-3 shrink-0">
       <button 
         @click="navStore.toggleSidebar" 
-        class="p-1 hover:bg-slate-100 rounded text-slate-600 hover:text-slate-800 transition-colors"
+        class="p-1 hover:bg-blue-50 rounded text-slate-600 hover:text-blue-600 transition-colors"
         title="Toggle Sidebar"
       >
         <Menu class="w-4 h-4" />
