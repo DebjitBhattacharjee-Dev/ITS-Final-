@@ -130,11 +130,10 @@ def get_workflow_summary():
         filters = stage['filters']
         
         try:
-            # Check if doctype exists to avoid errors on custom doctypes that might not be installed
-            if frappe.db.exists("DocType", doctype):
-                count = frappe.db.count(doctype, filters=filters)
+            if frappe.db.exists("DocType", doctype) and frappe.has_permission(doctype, "read"):
+                items = frappe.get_list(doctype, filters=filters, fields=["name"], limit_page_length=0, ignore_permissions=False)
+                count = len(items)
                 
-                # We can construct a unique key using gate + doctype to handle G8 FAT and IFAT correctly
                 key = f"{gate}_{doctype.replace(' ', '_')}"
                 
                 summary[key] = {

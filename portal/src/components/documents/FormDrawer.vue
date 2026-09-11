@@ -151,7 +151,7 @@ import ChildTableEditor from './ChildTableEditor.vue'
 import { saveDocument, getNewDocumentTemplate } from '../../services/api'
 
 const props = defineProps({
-  open: { type: Boolean, default: false },
+  open: { type: Boolean, default: true },
   docType: { type: String, required: true },
   fields: { type: Array, default: () => [] },
   initialData: { type: Object, default: () => ({}) }
@@ -167,19 +167,18 @@ const isEdit = ref(false)
 
 const formFields = computed(() => props.fields || [])
 
-watch(() => props.open, async (val) => {
-  if (val) {
+watch([() => props.open, () => props.docType], async ([openVal, dtVal]) => {
+  if (openVal && dtVal) {
     error.value = ''
-    isEdit.value = !!props.initialData?.name
+    isEdit.value = !!(props.initialData?.name && !String(props.initialData.name).startsWith('New '))
     if (isEdit.value) {
       formData.value = { ...props.initialData }
     } else {
-      // Fetch server defaults via frappe.new_doc(docType)
       loadingTemplate.value = true
       try {
-        const res = await getNewDocumentTemplate(props.docType)
-        if (res.success) {
-          formData.value = res.data || {}
+        const res = await getNewDocumentTemplate(dtVal)
+        if (res && res.success && res.data) {
+          formData.value = { ...res.data, ...props.initialData }
         } else {
           formData.value = { ...props.initialData }
         }

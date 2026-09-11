@@ -143,7 +143,8 @@
       <!-- Edit / Create Form Engine Drawer -->
       <FormDrawer
         v-if="drawerOpen"
-        :doc-type="pageInfo.docType"
+        :open="drawerOpen"
+        :doc-type="drawerDocType || pageInfo.docType"
         :initial-data="editData"
         :fields="formFields"
         @close="drawerOpen = false"
@@ -200,6 +201,8 @@ const relatedDocs = ref([])
 const detailLoading = ref(false)
 
 const drawerOpen = ref(false)
+const drawerDocType = ref('')
+const drawerMode = ref('create')
 const formFields = ref([])
 const editData = ref({})
 
@@ -311,9 +314,10 @@ const loadData = async () => {
   }
 }
 
-const fetchMeta = async () => {
+const fetchMeta = async (dt) => {
+  const targetType = dt || pageInfo.value.docType
   try {
-    const res = await getDocTypeMeta(pageInfo.value.docType)
+    const res = await getDocTypeMeta(targetType)
     if (res.success) {
       metaInfo.value = res.data
       formFields.value = res.data.fields || []
@@ -375,14 +379,20 @@ const handleRowClick = (row) => {
   }
 }
 
-const openCreateDrawer = async () => {
-  await fetchMeta()
+const openCreateDrawer = async (docTypeToCreate) => {
+  const targetType = (typeof docTypeToCreate === 'string' && docTypeToCreate) ? docTypeToCreate : pageInfo.value.docType
+  drawerDocType.value = targetType
+  drawerMode.value = 'create'
+  await fetchMeta(targetType)
   editData.value = {}
   drawerOpen.value = true
 }
 
 const openEditDrawer = async () => {
-  await fetchMeta()
+  const targetType = pageInfo.value.docType
+  drawerDocType.value = targetType
+  drawerMode.value = 'edit'
+  await fetchMeta(targetType)
   editData.value = { ...selectedDoc.value }
   drawerOpen.value = true
 }

@@ -293,7 +293,7 @@ def save_document(doctype, doc_data):
         return error_response("INVALID_PAYLOAD", _("Document payload must be a JSON object"), 400)
 
     name = doc_data.get("name")
-    is_new = not name or doc_data.get("__islocal")
+    is_new = not name or doc_data.get("__islocal") or (name and str(name).startswith("New "))
 
     perm_type = "create" if is_new else "write"
     if not frappe.has_permission(doctype, perm_type, doc=name if not is_new else None):
@@ -304,7 +304,7 @@ def save_document(doctype, doc_data):
             doc_data["doctype"] = doctype
             if "__islocal" in doc_data:
                 del doc_data["__islocal"]
-            if "name" in doc_data and doc_data["name"] and not doc_data.get("autoname"):
+            if "name" in doc_data:
                 del doc_data["name"]
             doc = frappe.get_doc(doc_data)
             doc.insert(ignore_permissions=False)
