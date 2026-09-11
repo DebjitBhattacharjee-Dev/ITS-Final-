@@ -1,8 +1,8 @@
 <template>
   <div class="mb-6">
     <Breadcrumb :subPage="subPage" />
-    <h1 class="text-xl font-bold text-slate-100 tracking-tight">{{ title }}</h1>
-    <p v-if="description" class="text-xs text-slate-400 mt-1 max-w-3xl leading-relaxed">{{ description }}</p>
+    <h1 class="text-xl font-bold text-slate-900 tracking-tight">{{ title }}</h1>
+    <p v-if="description" class="text-sm text-slate-600 mt-1 max-w-3xl leading-relaxed">{{ description }}</p>
   </div>
 </template>
 

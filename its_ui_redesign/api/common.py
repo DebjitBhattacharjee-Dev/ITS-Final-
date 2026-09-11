@@ -11,7 +11,8 @@ def success_response(data, meta=None):
     return res
 
 def error_response(code, message, status_code=400):
-    frappe.response["http_status_code"] = status_code
+    if status_code in (401, 403, 404):
+        frappe.response["http_status_code"] = status_code
     return {
         "success": False,
         "error": {
@@ -128,13 +129,23 @@ def get_document_list(doctype, filters=None, fields=None, order_by=None, page=1,
     clean_fields = get_valid_fields_for_doctype(meta, fields)
 
     if search_text:
+        searchable_types = {"Data", "Text", "Small Text", "Code", "Link", "Select", "Text Editor", "Long Text", "JSON", "Read Only"}
         search_fields = ["name"]
         if meta.title_field and meta.has_field(meta.title_field):
-            search_fields.append(meta.title_field)
+            tf_obj = meta.get_field(meta.title_field)
+            if not tf_obj or tf_obj.fieldtype in searchable_types:
+                search_fields.append(meta.title_field)
         if meta.has_field("description"):
             search_fields.append("description")
+        if meta.search_fields:
+            for sf in meta.search_fields.split(","):
+                sf = sf.strip()
+                if sf and meta.has_field(sf) and sf not in search_fields:
+                    f_obj = meta.get_field(sf)
+                    if f_obj and f_obj.fieldtype in searchable_types:
+                        search_fields.append(sf)
         
-        or_filters = [[doctype, field, "like", f"%{search_text}%"] for field in search_fields if meta.has_field(field) or field == "name"]
+        or_filters = [[doctype, field, "like", f"%{search_text}%"] for field in search_fields]
     else:
         or_filters = None
 
@@ -156,7 +167,13 @@ def get_document_list(doctype, filters=None, fields=None, order_by=None, page=1,
             ignore_permissions=False
         )
 
-        total_count = frappe.db.count(doctype, filters=filters)
+        try:
+            if or_filters or isinstance(filters, list):
+                total_count = len(frappe.get_list(doctype, filters=filters, or_filters=or_filters, fields=["name"], limit_page_length=0, ignore_permissions=False))
+            else:
+                total_count = frappe.db.count(doctype, filters=filters)
+        except Exception:
+            total_count = start + len(items) + (1 if len(items) == page_length else 0)
 
         return success_response(items, {
             "total": total_count,
@@ -166,7 +183,9 @@ def get_document_list(doctype, filters=None, fields=None, order_by=None, page=1,
             "title_field": meta.title_field or "name",
             "status_field": "status" if meta.has_field("status") else ("disabled" if meta.has_field("disabled") else None),
             "is_tree": meta.is_tree,
-            "is_submittable": meta.is_submittable
+            "is_submittable": meta.is_submittable,
+            "issingle": meta.issingle,
+            "istable": meta.istable
         })
     except Exception as e:
         frappe.log_error(f"Error fetching {doctype} list: {str(e)}")
@@ -203,23 +222,28 @@ def get_document_detail(doctype, name):
         for link in links:
             rel_doctype = link["parent"]
             rel_field = link["fieldname"]
-            if frappe.db.exists("DocType", rel_doctype) and frappe.has_permission(rel_doctype, "read"):
-                count = frappe.db.count(rel_doctype, filters={rel_field: name})
-                if count > 0:
+            try:
+                if frappe.db.exists("DocType", rel_doctype) and frappe.has_permission(rel_doctype, "read"):
                     rel_meta = frappe.get_meta(rel_doctype)
-                    rel_fields = get_valid_fields_for_doctype(rel_meta, ["name", "modified", "docstatus", "status"])
-                    recent = frappe.get_list(
-                        rel_doctype,
-                        filters={rel_field: name},
-                        fields=rel_fields,
-                        limit=5
-                    )
-                    related.append({
-                        "doctype": rel_doctype,
-                        "fieldname": rel_field,
-                        "count": count,
-                        "recent": recent
-                    })
+                    if rel_meta.issingle or rel_meta.istable:
+                        continue
+                    count = frappe.db.count(rel_doctype, filters={rel_field: name})
+                    if count > 0:
+                        rel_fields = get_valid_fields_for_doctype(rel_meta, ["name", "modified", "docstatus", "status"])
+                        recent = frappe.get_list(
+                            rel_doctype,
+                            filters={rel_field: name},
+                            fields=rel_fields,
+                            limit=5
+                        )
+                        related.append({
+                            "doctype": rel_doctype,
+                            "fieldname": rel_field,
+                            "count": count,
+                            "recent": recent
+                        })
+            except Exception:
+                continue
 
         return success_response({
             "document": doc_dict,
@@ -260,7 +284,13 @@ def save_document(doctype, doc_data):
         return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
     
     if isinstance(doc_data, str):
-        doc_data = json.loads(doc_data)
+        try:
+            doc_data = json.loads(doc_data)
+        except Exception:
+            return error_response("INVALID_PAYLOAD", _("Invalid JSON payload"), 400)
+
+    if not isinstance(doc_data, dict):
+        return error_response("INVALID_PAYLOAD", _("Document payload must be a JSON object"), 400)
 
     name = doc_data.get("name")
     is_new = not name or doc_data.get("__islocal")
@@ -272,23 +302,48 @@ def save_document(doctype, doc_data):
     try:
         if is_new:
             doc_data["doctype"] = doctype
+            if "__islocal" in doc_data:
+                del doc_data["__islocal"]
+            if "name" in doc_data and doc_data["name"] and not doc_data.get("autoname"):
+                del doc_data["name"]
             doc = frappe.get_doc(doc_data)
             doc.insert(ignore_permissions=False)
         else:
             doc = frappe.get_doc(doctype, name)
-            doc.update(doc_data)
+            meta = frappe.get_meta(doctype)
+            
+            system_read_only = {"name", "owner", "creation", "modified", "modified_by", "idx", "docstatus", "doctype", "__islocal", "_user_tags", "_comments", "_assign", "_liked_by"}
+            
+            for fieldname, value in doc_data.items():
+                if fieldname in system_read_only:
+                    continue
+                if meta.has_field(fieldname):
+                    df = meta.get_field(fieldname)
+                    if df.read_only:
+                        continue
+                    if df.fieldtype == "Table" and isinstance(value, list):
+                        doc.set(fieldname, [])
+                        for row in value:
+                            if isinstance(row, dict):
+                                row_clean = {k: v for k, v in row.items() if k not in system_read_only}
+                                doc.append(fieldname, row_clean)
+                    else:
+                        doc.set(fieldname, value)
+
             doc.save(ignore_permissions=False)
 
         return success_response(doc.as_dict())
     except frappe.ValidationError as e:
-        return error_response("VALIDATION_ERROR", str(e), 422)
+        msg = str(e)
+        return error_response("VALIDATION_ERROR", msg, 400)
     except frappe.MandatoryError as e:
-        return error_response("MANDATORY_ERROR", str(e), 422)
+        msg = str(e)
+        return error_response("MANDATORY_ERROR", msg, 400)
     except frappe.PermissionError as e:
         return error_response("PERMISSION_DENIED", str(e), 403)
     except Exception as e:
-        frappe.log_error(f"Error saving {doctype}: {str(e)}")
-        return error_response("SAVE_ERROR", str(e), 500)
+        frappe.log_error(f"Error saving {doctype} {name}: {str(e)}")
+        return error_response("SAVE_ERROR", str(e), 400)
 
 @frappe.whitelist()
 def submit_document(doctype, name):
@@ -358,6 +413,40 @@ def apply_workflow_action(doctype, name, action):
         return error_response("WORKFLOW_ERROR", str(e), 500)
 
 @frappe.whitelist()
+def delete_document(doctype, name):
+    if frappe.session.user == "Guest":
+        return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
+    
+    if not frappe.has_permission(doctype, "delete", doc=name):
+        return error_response("PERMISSION_DENIED", _("No delete permission for {0} {1}").format(doctype, name), 403)
+
+    try:
+        frappe.delete_doc(doctype, name, ignore_permissions=False)
+        return success_response({"deleted": True, "name": name})
+    except Exception as e:
+        frappe.log_error(f"Error deleting {doctype} {name}: {str(e)}")
+        return error_response("DELETE_ERROR", str(e), 500)
+
+@frappe.whitelist()
+def duplicate_document(doctype, name):
+    if frappe.session.user == "Guest":
+        return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
+    
+    if not frappe.has_permission(doctype, "create"):
+        return error_response("PERMISSION_DENIED", _("No create permission for {0}").format(doctype), 403)
+
+    try:
+        doc = frappe.get_doc(doctype, name)
+        copy_doc = frappe.copy_doc(doc)
+        copy_doc.name = None
+        copy_doc.docstatus = 0
+        copy_doc.set("__islocal", True)
+        return success_response(copy_doc.as_dict())
+    except Exception as e:
+        frappe.log_error(f"Error duplicating {doctype} {name}: {str(e)}")
+        return error_response("DUPLICATE_ERROR", str(e), 500)
+
+@frappe.whitelist()
 def search_link_options(doctype, txt=None, filters=None, page_length=20):
     if frappe.session.user == "Guest":
         return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
@@ -403,6 +492,94 @@ def search_link_options(doctype, txt=None, filters=None, page_length=20):
         return error_response("SEARCH_ERROR", str(e), 500)
 
 @frappe.whitelist()
+def insert_missing_custom_doctypes():
+    import os, json
+    roles = [
+        "Portal Administrator", "Project Manager", "Project Engineer", "Planning Engineer",
+        "Estimation Engineer", "Procurement Manager", "Store Manager", "HR Manager",
+        "Finance Manager", "Accountant", "Fabrication Manager", "Equipment Manager", "Management Viewer"
+    ]
+    for r in roles:
+        if not frappe.db.exists("Role", r):
+            try:
+                role_doc = frappe.get_doc({"doctype": "Role", "role_name": r, "desk_access": 1})
+                role_doc.insert(ignore_permissions=True)
+            except Exception:
+                pass
+    frappe.db.commit()
+
+    app_path = frappe.get_app_path("its_ui_redesign", "doctype")
+    inserted = []
+    for folder in os.listdir(app_path):
+        json_path = os.path.join(app_path, folder, f"{folder}.json")
+        if os.path.exists(json_path):
+            with open(json_path) as f:
+                data = json.load(f)
+                dt_name = data.get("name")
+                if dt_name and not frappe.db.exists("DocType", dt_name):
+                    try:
+                        d = frappe.get_doc(data)
+                        d.insert(ignore_permissions=True)
+                        inserted.append(dt_name)
+                    except Exception as e:
+                        frappe.log_error(title=f"Error inserting {dt_name}", message=frappe.get_traceback())
+                        inserted.append(f"FAILED_{dt_name}_{str(e)}")
+    frappe.db.commit()
+    return inserted
+
+@frappe.whitelist()
+def reload_custom_doctypes():
+    import os, json
+    app_path = frappe.get_app_path("its_ui_redesign", "doctype")
+    for folder in os.listdir(app_path):
+        json_path = os.path.join(app_path, folder, f"{folder}.json")
+        if os.path.exists(json_path):
+            with open(json_path) as f:
+                doc_json = json.load(f)
+                dt_name = doc_json.get("name")
+                if not frappe.db.exists("DocType", dt_name):
+                    try:
+                        doc = frappe.get_doc(doc_json)
+                        doc.insert(ignore_permissions=True)
+                    except Exception as e:
+                        frappe.log_error(f"Error inserting {dt_name}: {e}")
+                else:
+                    try:
+                        frappe.reload_doc("its_ui_redesign", "doctype", folder, force=True)
+                    except Exception as e:
+                        frappe.log_error(f"Error reloading {folder}: {e}")
+    return True
+
+@frappe.whitelist()
+def audit_navigation_doctypes():
+    import re
+    nav_file = "/home/frappe/frappe-bench/apps/its_ui_redesign/portal/src/config/navigation.js"
+    with open(nav_file, "r") as f:
+        content = f.read()
+    
+    doctype_matches = re.findall(r'"docType":\s*"([^"]+)"', content)
+    unique_doctypes = sorted(list(set(doctype_matches)))
+    
+    all_doctypes = set(frappe.get_all("DocType", pluck="name"))
+    
+    existing = []
+    missing = []
+    
+    for dt in unique_doctypes:
+        if dt in all_doctypes:
+            existing.append(dt)
+        else:
+            missing.append(dt)
+            
+    return {
+        "total_unique_mapped": len(unique_doctypes),
+        "existing_count": len(existing),
+        "missing_count": len(missing),
+        "existing": existing,
+        "missing": missing
+    }
+
+@frappe.whitelist()
 def get_doctype_meta(doctype):
     if frappe.session.user == "Guest":
         return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
@@ -416,9 +593,18 @@ def get_doctype_meta(doctype):
     meta = frappe.get_meta(doctype)
     fields = []
     list_fields = []
+    standard_filters = []
+
+    # Standard system fields
+    system_fields = [
+        {"fieldname": "name", "label": "ID / Name", "fieldtype": "Data", "in_list_view": 0, "in_standard_filter": 1},
+        {"fieldname": "modified", "label": "Last Modified", "fieldtype": "Datetime", "in_list_view": 0, "in_standard_filter": 1},
+        {"fieldname": "creation", "label": "Creation Date", "fieldtype": "Datetime", "in_list_view": 0, "in_standard_filter": 1},
+        {"fieldname": "owner", "label": "Created By", "fieldtype": "Link", "options": "User", "in_list_view": 0, "in_standard_filter": 1}
+    ]
 
     for f in meta.fields:
-        if not f.hidden and f.fieldtype not in ["HTML", "Heading"]:
+        if not f.hidden and f.fieldtype not in ["HTML", "Heading", "Section Break", "Column Break"]:
             field_def = {
                 "fieldname": f.fieldname,
                 "label": f.label,
@@ -429,12 +615,13 @@ def get_doctype_meta(doctype):
                 "default": f.default,
                 "description": f.description,
                 "in_list_view": f.in_list_view,
+                "in_standard_filter": getattr(f, "in_standard_filter", 0),
+                "precision": getattr(f, "precision", None),
                 "depends_on": f.depends_on,
                 "mandatory_depends_on": f.mandatory_depends_on,
                 "read_only_depends_on": f.read_only_depends_on
             }
 
-            # If fieldtype is Table (child table), attach child fields metadata
             if f.fieldtype == "Table" and f.options and frappe.db.exists("DocType", f.options):
                 child_meta = frappe.get_meta(f.options)
                 child_fields = []
@@ -453,7 +640,9 @@ def get_doctype_meta(doctype):
 
             fields.append(field_def)
             if f.in_list_view:
-                list_fields.append({"key": f.fieldname, "label": f.label, "fieldtype": f.fieldtype})
+                list_fields.append({"key": f.fieldname, "label": f.label, "fieldtype": f.fieldtype, "options": f.options})
+            if getattr(f, "in_standard_filter", 0):
+                standard_filters.append({"fieldname": f.fieldname, "label": f.label, "fieldtype": f.fieldtype, "options": f.options})
 
     if not list_fields:
         title_f = meta.title_field or "name"
@@ -467,21 +656,114 @@ def get_doctype_meta(doctype):
         elif meta.has_field("disabled"):
             list_fields.append({"key": "disabled", "label": "Status", "fieldtype": "Check"})
 
+        list_fields.append({"key": "modified", "label": "Modified", "fieldtype": "Datetime"})
+
+    # If standard_filters is empty, inject common key fields if present
+    if not standard_filters:
+        for sf_name in ["status", "company", "project", "customer", "supplier", "workflow_state", "item_group"]:
+            if meta.has_field(sf_name):
+                f_obj = meta.get_field(sf_name)
+                standard_filters.append({"fieldname": sf_name, "label": f_obj.label if f_obj else sf_name.replace("_", " ").title(), "fieldtype": f_obj.fieldtype if f_obj else "Select", "options": f_obj.options if f_obj else None})
+
     workflow_name = frappe.model.workflow.get_workflow_name(doctype)
+
+    permissions = {
+        "read": bool(frappe.has_permission(doctype, "read")),
+        "write": bool(frappe.has_permission(doctype, "write")),
+        "create": bool(frappe.has_permission(doctype, "create")),
+        "delete": bool(frappe.has_permission(doctype, "delete")),
+        "submit": bool(frappe.has_permission(doctype, "submit")),
+        "cancel": bool(frappe.has_permission(doctype, "cancel")),
+        "amend": bool(frappe.has_permission(doctype, "amend"))
+    }
+
+    search_fields_list = ["name"]
+    if meta.title_field and meta.has_field(meta.title_field):
+        search_fields_list.append(meta.title_field)
+    if meta.search_fields:
+        for sf in meta.search_fields.split(","):
+            sf = sf.strip()
+            if sf and meta.has_field(sf) and sf not in search_fields_list:
+                search_fields_list.append(sf)
 
     return success_response({
         "name": meta.name,
+        "label": getattr(meta, "label", meta.name),
         "module": meta.module,
         "title_field": meta.title_field or "name",
         "status_field": "status" if meta.has_field("status") else ("disabled" if meta.has_field("disabled") else None),
         "is_submittable": meta.is_submittable,
         "is_tree": meta.is_tree,
+        "issingle": meta.issingle,
+        "istable": meta.istable,
+        "sort_field": meta.sort_field or "modified",
+        "sort_order": meta.sort_order or "desc",
         "parent_field": f"parent_{meta.name.lower().replace(' ', '_')}" if meta.is_tree else None,
         "has_workflow": bool(workflow_name),
         "workflow_name": workflow_name,
+        "permissions": permissions,
+        "search_fields": search_fields_list,
         "fields": fields,
-        "list_fields": list_fields
+        "list_fields": list_fields,
+        "standard_filters": standard_filters,
+        "system_fields": system_fields
     })
+
+@frappe.whitelist()
+def delete_documents_bulk(doctype, names):
+    if frappe.session.user == "Guest":
+        return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
+    
+    if isinstance(names, str):
+        try:
+            names = json.loads(names)
+        except Exception:
+            names = [names]
+
+    deleted = []
+    failed = []
+
+    for name in names:
+        if frappe.has_permission(doctype, "delete", doc=name):
+            try:
+                frappe.delete_doc(doctype, name, ignore_permissions=False)
+                deleted.append(name)
+            except Exception as e:
+                failed.append({"name": name, "error": str(e)})
+        else:
+            failed.append({"name": name, "error": _("Permission denied")})
+
+    return success_response({"deleted": deleted, "failed": failed})
+
+@frappe.whitelist()
+def get_tree_nodes(doctype, parent_field=None, parent_val=None):
+    if frappe.session.user == "Guest":
+        return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
+
+    if not frappe.has_permission(doctype, "read"):
+        return error_response("PERMISSION_DENIED", _("No read permission"), 403)
+
+    meta = frappe.get_meta(doctype)
+    if not parent_field:
+        parent_field = f"parent_{meta.name.lower().replace(' ', '_')}"
+        if not meta.has_field(parent_field):
+            parent_field = "parent_" + doctype.lower()
+
+    filters = {}
+    if parent_val:
+        filters[parent_field] = parent_val
+    else:
+        filters[parent_field] = ["in", ["", None]]
+
+    title_field = meta.title_field or "name"
+    fields = ["name", title_field]
+    if meta.has_field("is_group"):
+        fields.append("is_group")
+    if meta.has_field(parent_field):
+        fields.append(parent_field)
+
+    nodes = frappe.get_list(doctype, filters=filters, fields=fields, order_by="name asc")
+    return success_response(nodes)
 
 
 @frappe.whitelist()
@@ -1066,3 +1348,147 @@ def validate_client_po_match(quotation_name, customer_po_amount):
         return success_response({"valid": True, "quotation": quotation_name, "agreed_amount": agreed_amount})
     except Exception as e:
         return error_response("VALIDATION_ERROR", f"Failed to validate Client PO: {str(e)}")
+
+
+@frappe.whitelist()
+def verify_invoice_readiness(project=None, sales_order=None, invoice_dossier=None):
+    """
+    BUSINESS GATE G10: Invoice Readiness Gate.
+    Verifies that Delivery, Commissioning, Handover sign-off, Quality Certificates, and Punch list clearance
+    are complete before Sales Invoice generation is permitted.
+    """
+    try:
+        checks = {
+            "delivery_completed": False,
+            "handover_signed_off": False,
+            "punch_list_cleared": True,
+            "commercial_conditions_met": True
+        }
+        reasons = []
+
+        target_project = project
+        if not target_project and sales_order:
+            target_project = frappe.db.get_value("Sales Order", sales_order, "project")
+        if not target_project and invoice_dossier:
+            target_project = frappe.db.get_value("Invoice Dossier", invoice_dossier, "project")
+
+        if not target_project:
+            # If no project link is specified, default to allowable for standalone non-project sales
+            return success_response({
+                "ready": True,
+                "project": None,
+                "checks": checks,
+                "message": "No project link provided. Invoice readiness bypass permitted."
+            })
+
+        # 1. Check Delivery Notes
+        dn_count = frappe.db.count("Delivery Note", {"project": target_project, "docstatus": 1})
+        if dn_count > 0:
+            checks["delivery_completed"] = True
+        else:
+            reasons.append("No submitted Delivery Note found for project.")
+
+        # 2. Check Handover / Dossier
+        if frappe.db.exists("DocType", "Project Handover"):
+            handover_count = frappe.db.count("Project Handover", {"project": target_project, "docstatus": 1})
+            if handover_count > 0:
+                checks["handover_signed_off"] = True
+            else:
+                reasons.append("Project Handover record is not submitted/signed-off.")
+        elif frappe.db.exists("DocType", "Invoice Dossier"):
+            dossier_count = frappe.db.count("Invoice Dossier", {"project": target_project, "dossier_status": "Approved"})
+            if dossier_count > 0:
+                checks["handover_signed_off"] = True
+            else:
+                reasons.append("Invoice Dossier is not approved.")
+        else:
+            checks["handover_signed_off"] = True
+
+        # 3. Check Punch List (Snag List / Quality NCR)
+        if frappe.db.exists("DocType", "Snag List"):
+            open_snags = frappe.db.count("Snag List", {"project": target_project, "status": ["in", ["Open", "Pending Inspection"]]})
+            if open_snags > 0:
+                checks["punch_list_cleared"] = False
+                reasons.append(f"{open_snags} open Punch/Snag list items remaining.")
+
+        if frappe.db.exists("DocType", "Quality NCR"):
+            open_ncrs = frappe.db.count("Quality NCR", {"project": target_project, "status": ["in", ["Open", "Pending Action"]]})
+            if open_ncrs > 0:
+                checks["punch_list_cleared"] = False
+                reasons.append(f"{open_ncrs} open Nonconformance Reports (NCRs) remaining.")
+
+        is_ready = all([checks["delivery_completed"], checks["handover_signed_off"], checks["punch_list_cleared"], checks["commercial_conditions_met"]])
+
+        if not is_ready:
+            return error_response(
+                "INVOICE_NOT_READY",
+                f"Invoice Readiness Gate Blocked for Project {target_project}: " + "; ".join(reasons)
+            )
+
+        return success_response({
+            "ready": True,
+            "project": target_project,
+            "checks": checks,
+            "message": "Invoice Readiness criteria satisfied."
+        })
+
+    except Exception as e:
+        return error_response("VALIDATION_ERROR", f"Failed to check Invoice Readiness: {str(e)}")
+
+
+# ==============================================================================
+# SERVER-SIDE FRAPPE DOC EVENT HARD STOPS
+# ==============================================================================
+
+def validate_purchase_order_hard_stop(doc, method=None):
+    """
+    Hooked to Purchase Order validate/on_submit:
+    Blocks Purchase Order creation/submission if project link exists but no approved Finance Commitment exists.
+    """
+    if getattr(doc, "project", None):
+        if frappe.db.exists("DocType", "Finance Commitment"):
+            approved_fc = frappe.db.exists("Finance Commitment", {
+                "project": doc.project,
+                "approval_status": "Approved"
+            })
+            if not approved_fc:
+                frappe.throw(
+                    _("HARD STOP (Finance Commitment Gate G6): Purchase Order '{0}' cannot be saved/submitted. "
+                      "An approved Finance Commitment is required for Project '{1}'.").format(doc.name or "New", doc.project),
+                    title=_("Finance Commitment Required")
+                )
+
+
+def validate_delivery_note_hard_stop(doc, method=None):
+    """
+    Hooked to Delivery Note validate/on_submit:
+    Blocks Delivery Note submission if open Category A/B Snag List items exist for the project.
+    """
+    if getattr(doc, "project", None):
+        if frappe.db.exists("DocType", "Snag List"):
+            open_snags = frappe.db.count("Snag List", {
+                "project": doc.project,
+                "status": ["in", ["Open", "Pending Inspection"]]
+            })
+            if open_snags > 0:
+                frappe.throw(
+                    _("HARD STOP (Punch List Gate G8.5): Delivery Note '{0}' cannot be submitted. "
+                      "There are {1} open Punch/Snag list items for Project '{2}'.").format(doc.name or "New", open_snags, doc.project),
+                    title=_("Open Snag Items Block Delivery")
+                )
+
+
+def validate_sales_invoice_hard_stop(doc, method=None):
+    """
+    Hooked to Sales Invoice validate/on_submit:
+    Enforces Invoice Readiness gate on backend before Sales Invoice submission.
+    """
+    if getattr(doc, "project", None) and doc.docstatus == 1:
+        res = verify_invoice_readiness(project=doc.project)
+        if not res.get("success"):
+            error_msg = res.get("error", {}).get("message", "Invoice Readiness criteria not satisfied.")
+            frappe.throw(
+                _("HARD STOP (Invoice Readiness Gate G10): {0}").format(error_msg),
+                title=_("Invoice Readiness Gate Blocked")
+            )
+

@@ -27,22 +27,22 @@ export const WORKSPACES = [
             "docType": "Project"
           },
           {
-            "label": "Client and Consultant Directory",
+            "label": "Client & Consultant Directory",
             "route": "/portal/project-management/client-consultant-directory",
             "docType": "Customer"
           },
           {
             "label": "Project Contracts",
             "route": "/portal/project-management/project-contracts",
-            "docType": "Project Contract BOQ"
+            "docType": "BOQ"
           },
           {
-            "label": "Project Team and Responsibilities",
+            "label": "Project Team & Responsibilities",
             "route": "/portal/project-management/project-team",
             "docType": "Project User"
           },
           {
-            "label": "Project Scope and Deliverables",
+            "label": "Project Scope & Deliverables",
             "route": "/portal/project-management/project-scope",
             "docType": "Task"
           },
@@ -57,22 +57,22 @@ export const WORKSPACES = [
         "title": "Documents and Coordination",
         "items": [
           {
-            "label": "Project Documents and Drawings",
+            "label": "Project Documents & Drawings",
             "route": "/portal/project-management/documents-drawings",
             "docType": "File"
           },
           {
             "label": "Requests for Information (RFIs)",
             "route": "/portal/project-management/rfis",
-            "docType": "Issue"
+            "docType": "Request for Information"
           },
           {
-            "label": "Material and Technical Submittals",
+            "label": "Material & Technical Submittals",
             "route": "/portal/project-management/submittals",
-            "docType": "Item"
+            "docType": "Technical Submittal"
           },
           {
-            "label": "Meeting Minutes and Action Items",
+            "label": "Meeting Minutes & Action Items",
             "route": "/portal/project-management/meeting-minutes",
             "docType": "Communication"
           }
@@ -82,17 +82,17 @@ export const WORKSPACES = [
         "title": "Controls and Quality",
         "items": [
           {
-            "label": "Risks and Issues",
+            "label": "Risks & Issues",
             "route": "/portal/project-management/risks-issues",
             "docType": "Issue"
           },
           {
-            "label": "Change and Variation Register",
+            "label": "Change & Variation Register",
             "route": "/portal/project-management/variation-register",
-            "docType": "Task"
+            "docType": "Project Variation"
           },
           {
-            "label": "Quality Inspections and Nonconformances",
+            "label": "Quality Inspections & NCRs",
             "route": "/portal/project-management/quality-inspections",
             "docType": "Quality Inspection"
           }
@@ -102,14 +102,14 @@ export const WORKSPACES = [
         "title": "Handover",
         "items": [
           {
-            "label": "Snag and Punch Lists",
+            "label": "Snag & Punch Lists",
             "route": "/portal/project-management/snag-lists",
-            "docType": "Issue"
+            "docType": "Snag List"
           },
           {
-            "label": "Project Handover and Closeout",
+            "label": "Project Handover & Closeout",
             "route": "/portal/project-management/project-handover",
-            "docType": "Project"
+            "docType": "Project Handover"
           }
         ]
       },
@@ -119,32 +119,32 @@ export const WORKSPACES = [
           {
             "label": "Project Warranty Register",
             "route": "/portal/project-management/warranty-register",
-            "docType": "Warranty Claim"
+            "docType": "Project Warranty"
           },
           {
-            "label": "Workmanship and Installation Warranties",
+            "label": "Workmanship Warranties",
             "route": "/portal/project-management/workmanship-warranties",
             "docType": "Warranty Claim"
           },
           {
             "label": "Warranty Certificates",
             "route": "/portal/project-management/warranty-certificates",
-            "docType": "File"
+            "docType": "Warranty Register"
           },
           {
             "label": "Defects Liability Periods",
             "route": "/portal/project-management/defects-liability-periods",
-            "docType": "Project"
+            "docType": "Project Warranty"
           },
           {
-            "label": "Defect Notices and Rectification",
+            "label": "Defect Notices & Rectification",
             "route": "/portal/project-management/defect-notices",
             "docType": "Warranty Claim"
           },
           {
             "label": "Warranty Closeout",
             "route": "/portal/project-management/warranty-closeout",
-            "docType": "Warranty Claim"
+            "docType": "Project Warranty"
           }
         ]
       }
@@ -174,19 +174,19 @@ export const WORKSPACES = [
             "viewType": "dashboard"
           },
           {
-            "label": "Cost Codes and Cost Categories",
+            "label": "Cost Codes & Cost Centers",
             "route": "/portal/estimation-cost-control/cost-codes",
             "docType": "Cost Center"
           },
           {
-            "label": "Material, Labour, and Equipment Rates",
+            "label": "Material & Labour Rates",
             "route": "/portal/estimation-cost-control/rates",
             "docType": "Item Price"
           },
           {
             "label": "Bill of Quantities (BOQ)",
             "route": "/portal/estimation-cost-control/boq",
-            "docType": "Project Contract BOQ"
+            "docType": "BOQ"
           },
           {
             "label": "Rate Analysis",
@@ -194,12 +194,12 @@ export const WORKSPACES = [
             "docType": "Item"
           },
           {
-            "label": "Project Estimates",
+            "label": "Customer Quotations (Estimates)",
             "route": "/portal/estimation-cost-control/project-estimates",
             "docType": "Quotation"
           },
           {
-            "label": "Tender Pricing and Quotations",
+            "label": "Customer Quotations (Tender Pricing)",
             "route": "/portal/estimation-cost-control/tender-pricing",
             "docType": "Quotation"
           }
@@ -214,17 +214,17 @@ export const WORKSPACES = [
             "docType": "Budget"
           },
           {
-            "label": "Budget Revisions and Transfers",
+            "label": "Budget Revisions & Transfers",
             "route": "/portal/estimation-cost-control/budget-revisions",
             "docType": "Budget"
           },
           {
             "label": "Committed Costs",
             "route": "/portal/estimation-cost-control/committed-costs",
-            "docType": "Purchase Order"
+            "docType": "Finance Commitment"
           },
           {
-            "label": "Actual Costs",
+            "label": "Actual Costs (GL)",
             "route": "/portal/estimation-cost-control/actual-costs",
             "docType": "GL Entry"
           }
@@ -239,17 +239,17 @@ export const WORKSPACES = [
             "docType": "Budget"
           },
           {
-            "label": "Cost Forecast and Cost to Complete",
+            "label": "Cost Forecast & Cost to Complete",
             "route": "/portal/estimation-cost-control/cost-forecast",
             "docType": "Project"
           },
           {
             "label": "Variation Cost Analysis",
             "route": "/portal/estimation-cost-control/variation-cost-analysis",
-            "docType": "Project"
+            "docType": "Project Variation"
           },
           {
-            "label": "Warranty and Defect Rectification Costs",
+            "label": "Warranty & Defect Costs",
             "route": "/portal/estimation-cost-control/warranty-costs",
             "docType": "Warranty Claim"
           }
@@ -285,7 +285,7 @@ export const WORKSPACES = [
             "docType": "Task"
           },
           {
-            "label": "Activities and Dependencies",
+            "label": "Activities & Dependencies",
             "route": "/portal/planning/activities-dependencies",
             "docType": "Task"
           },
@@ -305,7 +305,7 @@ export const WORKSPACES = [
         "title": "Schedules and Resources",
         "items": [
           {
-            "label": "Current Programme and Updates",
+            "label": "Current Programme & Updates",
             "route": "/portal/planning/current-programme",
             "docType": "Project"
           },
@@ -317,17 +317,17 @@ export const WORKSPACES = [
           {
             "label": "Manpower Planning",
             "route": "/portal/planning/manpower-planning",
-            "docType": "Employee"
+            "docType": "Daily Manpower Register"
           },
           {
-            "label": "Material Requirements Planning",
+            "label": "Material Requirements (MRP)",
             "route": "/portal/planning/mrp",
             "docType": "Material Request"
           },
           {
-            "label": "Equipment Requirements Planning",
+            "label": "Equipment Requirements",
             "route": "/portal/planning/equipment-planning",
-            "docType": "Equipment Register"
+            "docType": "Equipment Usage Log"
           },
           {
             "label": "Procurement Schedule",
@@ -335,7 +335,7 @@ export const WORKSPACES = [
             "docType": "Purchase Order"
           },
           {
-            "label": "Fabrication and Delivery Schedule",
+            "label": "Fabrication & Delivery Schedule",
             "route": "/portal/planning/fabrication-schedule",
             "docType": "Work Order"
           }
@@ -355,7 +355,7 @@ export const WORKSPACES = [
             "docType": "Project"
           },
           {
-            "label": "Delay and Recovery Plans",
+            "label": "Delay & Recovery Plans",
             "route": "/portal/planning/delay-recovery-plans",
             "docType": "Task"
           }
@@ -388,27 +388,27 @@ export const WORKSPACES = [
             "viewType": "dashboard"
           },
           {
-            "label": "Supplier and Subcontractor Directory",
+            "label": "Supplier & Subcontractor Directory",
             "route": "/portal/procurement-subcontractors/supplier-directory",
             "docType": "Supplier"
           },
           {
-            "label": "Supplier and Subcontractor Prequalification",
+            "label": "Supplier Prequalification",
             "route": "/portal/procurement-subcontractors/prequalification",
             "docType": "Supplier"
           },
           {
-            "label": "Material and Service Requisitions",
+            "label": "Material Requisitions",
             "route": "/portal/procurement-subcontractors/requisitions",
             "docType": "Material Request"
           },
           {
-            "label": "Requests for Quotation",
+            "label": "Requests for Quotation (RFQs)",
             "route": "/portal/procurement-subcontractors/rfqs",
             "docType": "Request for Quotation"
           },
           {
-            "label": "Supplier and Subcontractor Quotations",
+            "label": "Supplier Quotation",
             "route": "/portal/procurement-subcontractors/supplier-quotations",
             "docType": "Supplier Quotation"
           },
@@ -428,17 +428,17 @@ export const WORKSPACES = [
             "docType": "Purchase Order"
           },
           {
-            "label": "Subcontract Agreements and Work Orders",
+            "label": "Subcontract Agreements",
             "route": "/portal/procurement-subcontractors/subcontract-agreements",
-            "docType": "Purchase Order"
+            "docType": "Subcontract Agreement"
           },
           {
-            "label": "Delivery and Expediting Schedule",
+            "label": "Delivery & Expediting Schedule",
             "route": "/portal/procurement-subcontractors/delivery-schedule",
             "docType": "Purchase Receipt"
           },
           {
-            "label": "Goods and Service Acceptance",
+            "label": "Goods & Service Acceptance",
             "route": "/portal/procurement-subcontractors/goods-acceptance",
             "docType": "Purchase Receipt"
           },
@@ -455,20 +455,20 @@ export const WORKSPACES = [
           {
             "label": "Subcontractor Progress Claims",
             "route": "/portal/procurement-subcontractors/progress-claims",
-            "docType": "Subcontractor Progress Claim"
+            "docType": "Subcontract Progress Claim"
           },
           {
             "label": "Subcontractor Payment Certificates",
             "route": "/portal/procurement-subcontractors/payment-certificates",
-            "docType": "Subcontractor Progress Claim"
+            "docType": "Payment Certificate"
           },
           {
             "label": "Subcontract Variations",
             "route": "/portal/procurement-subcontractors/subcontract-variations",
-            "docType": "Purchase Order"
+            "docType": "Subcontract Progress Claim"
           },
           {
-            "label": "Supplier and Subcontractor Performance",
+            "label": "Supplier Performance",
             "route": "/portal/procurement-subcontractors/supplier-performance",
             "docType": "Supplier"
           }
@@ -480,7 +480,7 @@ export const WORKSPACES = [
           {
             "label": "Supplier Warranty Register",
             "route": "/portal/procurement-subcontractors/supplier-warranty-register",
-            "docType": "Warranty Claim"
+            "docType": "Warranty Register"
           },
           {
             "label": "Manufacturer Warranty Certificates",
@@ -498,7 +498,7 @@ export const WORKSPACES = [
             "docType": "Warranty Claim"
           },
           {
-            "label": "Repair and Replacement Follow-Up",
+            "label": "Repair & Replacement Follow-Up",
             "route": "/portal/procurement-subcontractors/repair-followup",
             "docType": "Warranty Claim"
           },
@@ -539,12 +539,12 @@ export const WORKSPACES = [
             "docType": "Item"
           },
           {
-            "label": "Item Categories and Units of Measure",
+            "label": "Item Categories & UOM",
             "route": "/portal/inventory-management/categories-uom",
             "docType": "Item Group"
           },
           {
-            "label": "Warehouses and Project Stores",
+            "label": "Warehouses & Project Stores",
             "route": "/portal/inventory-management/warehouses",
             "docType": "Warehouse"
           },
@@ -599,17 +599,17 @@ export const WORKSPACES = [
             "docType": "Stock Reconciliation"
           },
           {
-            "label": "Batch and Serial Number Tracking",
+            "label": "Batch & Serial Number Tracking",
             "route": "/portal/inventory-management/batch-serial-tracking",
             "docType": "Batch"
           },
           {
-            "label": "Scrap and Damaged Materials",
+            "label": "Scrap & Damaged Materials",
             "route": "/portal/inventory-management/scrap-damaged-materials",
             "docType": "Stock Entry"
           },
           {
-            "label": "Stock Balance and Valuation",
+            "label": "Stock Balance & Valuation",
             "route": "/portal/inventory-management/stock-balance-valuation",
             "docType": "Stock Ledger Entry"
           }
@@ -624,7 +624,7 @@ export const WORKSPACES = [
             "docType": "Warranty Claim"
           },
           {
-            "label": "Warranty and AMC Expiry Dates",
+            "label": "Warranty & AMC Expiry Dates",
             "route": "/portal/inventory-management/warranty-expiry-dates",
             "docType": "Warranty Claim"
           },
@@ -651,7 +651,7 @@ export const WORKSPACES = [
           {
             "label": "Supplier Warranty Register",
             "route": "/portal/inventory-management/supplier-warranty-reg",
-            "docType": "Warranty Claim"
+            "docType": "Warranty Register"
           }
         ]
       }
@@ -685,17 +685,17 @@ export const WORKSPACES = [
             "docType": "Employee"
           },
           {
-            "label": "Departments and Designations",
+            "label": "Departments & Designations",
             "route": "/portal/hr-manpower/departments-designations",
             "docType": "Department"
           },
           {
-            "label": "Employment Contracts and Documents",
+            "label": "Employment Contracts",
             "route": "/portal/hr-manpower/employment-contracts",
             "docType": "Employee"
           },
           {
-            "label": "Recruitment and Onboarding",
+            "label": "Recruitment & Onboarding",
             "route": "/portal/hr-manpower/recruitment-onboarding",
             "docType": "Employee"
           }
@@ -705,12 +705,12 @@ export const WORKSPACES = [
         "title": "Deployment and Time",
         "items": [
           {
-            "label": "Project and Site Assignments",
+            "label": "Project & Site Assignments",
             "route": "/portal/hr-manpower/site-assignments",
             "docType": "Employee"
           },
           {
-            "label": "Shifts and Rosters",
+            "label": "Shifts & Rosters",
             "route": "/portal/hr-manpower/shifts-rosters",
             "docType": "Attendance"
           },
@@ -745,7 +745,7 @@ export const WORKSPACES = [
             "docType": "Salary Slip"
           },
           {
-            "label": "Employee Loans and Advances",
+            "label": "Employee Loans & Advances",
             "route": "/portal/hr-manpower/employee-advances",
             "docType": "Expense Claim"
           },
@@ -755,12 +755,12 @@ export const WORKSPACES = [
             "docType": "Employee"
           },
           {
-            "label": "Training and Certifications",
+            "label": "Training & Certifications",
             "route": "/portal/hr-manpower/training-certifications",
             "docType": "Employee"
           },
           {
-            "label": "Employee Exit and Final Settlement",
+            "label": "Employee Exit & Settlement",
             "route": "/portal/hr-manpower/employee-exit",
             "docType": "Employee"
           }
@@ -794,20 +794,20 @@ export const WORKSPACES = [
           {
             "label": "Fabrication Job Register",
             "route": "/portal/fabrication-assets-equipment/job-register",
-            "docType": "Work Order"
+            "docType": "PSS Skid Tracker"
           },
           {
-            "label": "Shop Drawings and Revisions",
+            "label": "Shop Drawings & Revisions",
             "route": "/portal/fabrication-assets-equipment/shop-drawings",
             "docType": "File"
           },
           {
-            "label": "Bills of Materials",
+            "label": "Bills of Materials (BOM)",
             "route": "/portal/fabrication-assets-equipment/boms",
             "docType": "BOM"
           },
           {
-            "label": "Production Routes and Operations",
+            "label": "Production Routes & Operations",
             "route": "/portal/fabrication-assets-equipment/production-routes",
             "docType": "Work Order"
           },
@@ -822,7 +822,7 @@ export const WORKSPACES = [
         "title": "Production and Dispatch",
         "items": [
           {
-            "label": "Material Requests and Consumption",
+            "label": "Material Requests & Consumption",
             "route": "/portal/fabrication-assets-equipment/material-requests-consumption",
             "docType": "Material Request"
           },
@@ -832,14 +832,24 @@ export const WORKSPACES = [
             "docType": "Work Order"
           },
           {
-            "label": "Daily Production and Labour Recording",
+            "label": "Daily Production & Labour Recording",
             "route": "/portal/fabrication-assets-equipment/daily-production-recording",
             "docType": "Job Card"
           },
           {
-            "label": "Quality Inspections and Rework",
+            "label": "Quality Inspections & Rework",
             "route": "/portal/fabrication-assets-equipment/quality-inspections-rework",
             "docType": "Quality Inspection"
+          },
+          {
+            "label": "Factory Acceptance Test (FAT)",
+            "route": "/portal/fabrication-assets-equipment/fat",
+            "docType": "Factory Acceptance Test"
+          },
+          {
+            "label": "Integrated Factory Acceptance Test (IFAT)",
+            "route": "/portal/fabrication-assets-equipment/ifat",
+            "docType": "Integrated Factory Acceptance Test"
           },
           {
             "label": "Finished Goods",
@@ -857,17 +867,17 @@ export const WORKSPACES = [
         "title": "Assets",
         "items": [
           {
-            "label": "Asset Register and Categories",
+            "label": "Asset Register & Categories",
             "route": "/portal/fabrication-assets-equipment/asset-register",
             "docType": "Asset"
           },
           {
-            "label": "Asset Acquisition and Capitalization",
+            "label": "Asset Acquisition & Capitalization",
             "route": "/portal/fabrication-assets-equipment/asset-acquisition",
             "docType": "Asset"
           },
           {
-            "label": "Asset Assignment and Custody",
+            "label": "Asset Assignment & Custody",
             "route": "/portal/fabrication-assets-equipment/asset-assignment",
             "docType": "Asset Movement"
           },
@@ -877,7 +887,7 @@ export const WORKSPACES = [
             "docType": "Asset Movement"
           },
           {
-            "label": "Depreciation",
+            "label": "Depreciation Schedule",
             "route": "/portal/fabrication-assets-equipment/asset-depreciation",
             "docType": "Asset"
           },
@@ -894,32 +904,32 @@ export const WORKSPACES = [
           {
             "label": "Equipment Register",
             "route": "/portal/fabrication-assets-equipment/equipment-register",
-            "docType": "Equipment Register"
+            "docType": "Equipment Usage Log"
           },
           {
-            "label": "Equipment Allocation and Mobilization",
+            "label": "Equipment Allocation & Mobilization",
             "route": "/portal/fabrication-assets-equipment/equipment-allocation",
-            "docType": "Equipment Register"
+            "docType": "Equipment Usage Log"
           },
           {
-            "label": "Equipment Hire and Rental",
+            "label": "Equipment Hire & Rental",
             "route": "/portal/fabrication-assets-equipment/equipment-hire",
-            "docType": "Equipment Register"
+            "docType": "Equipment Usage Log"
           },
           {
             "label": "Operator Assignments",
             "route": "/portal/fabrication-assets-equipment/operator-assignments",
-            "docType": "Equipment Register"
+            "docType": "Equipment Usage Log"
           },
           {
-            "label": "Daily Usage and Meter Readings",
+            "label": "Daily Usage & Meter Readings",
             "route": "/portal/fabrication-assets-equipment/daily-usage",
-            "docType": "Equipment Register"
+            "docType": "Equipment Usage Log"
           },
           {
-            "label": "Fuel Consumption",
+            "label": "Fuel Consumption Log",
             "route": "/portal/fabrication-assets-equipment/fuel-consumption",
-            "docType": "Equipment Register"
+            "docType": "Equipment Usage Log"
           },
           {
             "label": "Preventive Maintenance",
@@ -927,19 +937,19 @@ export const WORKSPACES = [
             "docType": "Asset Maintenance"
           },
           {
-            "label": "Breakdowns and Repairs",
+            "label": "Breakdowns & Repairs",
             "route": "/portal/fabrication-assets-equipment/breakdowns-repairs",
             "docType": "Asset Maintenance"
           },
           {
-            "label": "Inspections and Certificate Expiry",
+            "label": "Inspections & Certificate Expiry",
             "route": "/portal/fabrication-assets-equipment/inspections-certificate-expiry",
-            "docType": "Equipment Register"
+            "docType": "Equipment Usage Log"
           },
           {
-            "label": "Utilization and Operating Costs",
+            "label": "Utilization & Operating Costs",
             "route": "/portal/fabrication-assets-equipment/utilization-operating-costs",
-            "docType": "Equipment Register"
+            "docType": "Equipment Usage Log"
           }
         ]
       },
@@ -952,7 +962,7 @@ export const WORKSPACES = [
             "docType": "Warranty Claim"
           },
           {
-            "label": "Asset and Equipment Supplier Warranties",
+            "label": "Asset & Equipment Warranties",
             "route": "/portal/fabrication-assets-equipment/asset-supplier-warranties",
             "docType": "Warranty Claim"
           },
@@ -962,7 +972,7 @@ export const WORKSPACES = [
             "docType": "File"
           },
           {
-            "label": "Warranty Repair and Replacement Tracking",
+            "label": "Warranty Repair Tracking",
             "route": "/portal/fabrication-assets-equipment/warranty-repair-tracking",
             "docType": "Warranty Claim"
           }
@@ -994,14 +1004,14 @@ export const WORKSPACES = [
             "viewType": "dashboard"
           },
           {
-            "label": "Contract BOQ and Billing Schedule",
+            "label": "Contract BOQ & Billing Schedule",
             "route": "/portal/project-progress-billing/contract-boq-schedule",
-            "docType": "Project Contract BOQ"
+            "docType": "BOQ"
           },
           {
             "label": "Site Measurements",
             "route": "/portal/project-progress-billing/site-measurements",
-            "docType": "Site Measurement"
+            "docType": "Site Measurement Item"
           },
           {
             "label": "Work Completion Records",
@@ -1009,9 +1019,9 @@ export const WORKSPACES = [
             "docType": "Task"
           },
           {
-            "label": "Progress Quantities and Percentages",
+            "label": "Progress Quantities & Percentages",
             "route": "/portal/project-progress-billing/progress-quantities-percentages",
-            "docType": "Project"
+            "docType": "Progress Claim"
           }
         ]
       },
@@ -1021,17 +1031,17 @@ export const WORKSPACES = [
           {
             "label": "Client Progress Claims",
             "route": "/portal/project-progress-billing/client-progress-claims",
-            "docType": "Sales Order"
+            "docType": "Progress Claim"
           },
           {
             "label": "Client Payment Certificates",
             "route": "/portal/project-progress-billing/client-payment-certificates",
-            "docType": "Sales Order"
+            "docType": "Payment Certificate"
           },
           {
             "label": "Approved Variations for Billing",
             "route": "/portal/project-progress-billing/approved-variations-billing",
-            "docType": "Project"
+            "docType": "Project Variation"
           }
         ]
       },
@@ -1044,12 +1054,12 @@ export const WORKSPACES = [
             "docType": "Sales Invoice"
           },
           {
-            "label": "Retention Calculation and Release",
+            "label": "Retention Calculation & Release",
             "route": "/portal/project-progress-billing/retention-calculation-release",
             "docType": "Sales Invoice"
           },
           {
-            "label": "Deductions and Adjustments",
+            "label": "Deductions & Adjustments",
             "route": "/portal/project-progress-billing/deductions-adjustments",
             "docType": "Sales Invoice"
           }
@@ -1059,9 +1069,9 @@ export const WORKSPACES = [
         "title": "Billing and Closeout",
         "items": [
           {
-            "label": "Invoice Preparation",
+            "label": "Invoice Preparation & Dossier",
             "route": "/portal/project-progress-billing/invoice-preparation",
-            "docType": "Sales Invoice"
+            "docType": "Invoice Dossier"
           },
           {
             "label": "Unbilled Work",
@@ -1069,7 +1079,7 @@ export const WORKSPACES = [
             "docType": "Sales Invoice"
           },
           {
-            "label": "Billing and Collection Status",
+            "label": "Billing & Collection Status",
             "route": "/portal/project-progress-billing/billing-collection-status",
             "docType": "Sales Invoice"
           },
@@ -1079,9 +1089,9 @@ export const WORKSPACES = [
             "docType": "Sales Invoice"
           },
           {
-            "label": "Handover and Defects Clearance for Retention Release",
+            "label": "Handover & Defects Clearance",
             "route": "/portal/project-progress-billing/defects-clearance-retention",
-            "docType": "Project"
+            "docType": "Project Handover"
           }
         ]
       }
@@ -1125,12 +1135,12 @@ export const WORKSPACES = [
             "docType": "Customer"
           },
           {
-            "label": "Bank and Cash Accounts",
+            "label": "Bank & Cash Accounts",
             "route": "/portal/accounting-finance/bank-cash-accounts",
             "docType": "Account"
           },
           {
-            "label": "Taxes",
+            "label": "Taxes & Templates",
             "route": "/portal/accounting-finance/taxes",
             "docType": "Account"
           }
@@ -1140,32 +1150,32 @@ export const WORKSPACES = [
         "title": "Invoices and Payments",
         "items": [
           {
-            "label": "Sales Invoices and Credit Notes",
+            "label": "Sales Invoices & Credit Notes",
             "route": "/portal/accounting-finance/sales-invoices-credit-notes",
             "docType": "Sales Invoice"
           },
           {
-            "label": "Supplier Invoices and Debit Notes",
+            "label": "Supplier Invoices & Debit Notes",
             "route": "/portal/accounting-finance/supplier-invoices-debit-notes",
             "docType": "Purchase Invoice"
           },
           {
             "label": "Payment Requests",
             "route": "/portal/accounting-finance/payment-requests",
-            "docType": "Payment Entry"
+            "docType": "Payment Request"
           },
           {
-            "label": "Payments and Receipts",
+            "label": "Payments & Receipts",
             "route": "/portal/accounting-finance/payments-receipts",
             "docType": "Payment Entry"
           },
           {
-            "label": "Employee Expenses and Advances",
+            "label": "Employee Expenses & Advances",
             "route": "/portal/accounting-finance/employee-expenses-advances",
             "docType": "Expense Claim"
           },
           {
-            "label": "Petty Cash",
+            "label": "Petty Cash Journal Entries",
             "route": "/portal/accounting-finance/petty-cash",
             "docType": "Journal Entry"
           }
@@ -1185,12 +1195,12 @@ export const WORKSPACES = [
             "docType": "Journal Entry"
           },
           {
-            "label": "Accounts Receivable and Payable",
+            "label": "Accounts Receivable & Payable",
             "route": "/portal/accounting-finance/ar-ap",
             "docType": "GL Entry"
           },
           {
-            "label": "Retention and Advance Balances",
+            "label": "Retention & Advance Balances",
             "route": "/portal/accounting-finance/retention-advance-balances",
             "docType": "GL Entry"
           }
@@ -1205,7 +1215,7 @@ export const WORKSPACES = [
             "docType": "GL Entry"
           },
           {
-            "label": "Period Closing",
+            "label": "Period Closing Vouchers",
             "route": "/portal/accounting-finance/period-closing",
             "docType": "Period Closing Voucher"
           }
@@ -1215,7 +1225,7 @@ export const WORKSPACES = [
         "title": "Construction Finance",
         "items": [
           {
-            "label": "Retention Receivable and Payable Schedule",
+            "label": "Retention Receivable/Payable Schedule",
             "route": "/portal/accounting-finance/retention-receivable-payable-schedule",
             "docType": "GL Entry"
           },
@@ -1225,7 +1235,7 @@ export const WORKSPACES = [
             "docType": "GL Entry"
           },
           {
-            "label": "Project Accrual and WIP Review",
+            "label": "Project Accrual & WIP Review",
             "route": "/portal/accounting-finance/project-accrual-wip-review",
             "docType": "GL Entry"
           },
@@ -1235,7 +1245,7 @@ export const WORKSPACES = [
             "docType": "GL Entry"
           },
           {
-            "label": "Warranty Costs and Supplier Recoveries",
+            "label": "Warranty Costs & Recoveries",
             "route": "/portal/accounting-finance/warranty-costs-supplier-recoveries",
             "docType": "Warranty Claim"
           }
@@ -1288,17 +1298,17 @@ export const WORKSPACES = [
         "title": "Projects and Commercial",
         "items": [
           {
-            "label": "Budget and Cost Reports",
+            "label": "Budget & Cost Reports",
             "route": "/portal/reporting/budget-cost-reports",
             "docType": "Budget"
           },
           {
-            "label": "Progress and Productivity Reports",
+            "label": "Progress & Productivity Reports",
             "route": "/portal/reporting/progress-productivity-reports",
             "docType": "Task"
           },
           {
-            "label": "Billing and Collection Reports",
+            "label": "Billing & Collection Reports",
             "route": "/portal/reporting/billing-collection-reports",
             "docType": "Sales Invoice"
           }
@@ -1308,7 +1318,7 @@ export const WORKSPACES = [
         "title": "Operations and Resources",
         "items": [
           {
-            "label": "Procurement and Subcontractor Reports",
+            "label": "Procurement & Subcontractor Reports",
             "route": "/portal/reporting/procurement-subcontractor-reports",
             "docType": "Purchase Order"
           },
@@ -1318,7 +1328,7 @@ export const WORKSPACES = [
             "docType": "Stock Ledger Entry"
           },
           {
-            "label": "HR and Manpower Reports",
+            "label": "HR & Manpower Reports",
             "route": "/portal/reporting/hr-manpower-reports",
             "docType": "Attendance"
           },
@@ -1328,7 +1338,7 @@ export const WORKSPACES = [
             "docType": "Work Order"
           },
           {
-            "label": "Asset and Equipment Reports",
+            "label": "Asset & Equipment Reports",
             "route": "/portal/reporting/asset-equipment-reports",
             "docType": "Asset"
           },
@@ -1343,32 +1353,32 @@ export const WORKSPACES = [
         "title": "Warranty and Defects Liability",
         "items": [
           {
-            "label": "Active and Expiring Product Warranties",
+            "label": "Active & Expiring Warranties",
             "route": "/portal/reporting/active-expiring-product-warranties",
             "docType": "Warranty Claim"
           },
           {
-            "label": "Open and Overdue Warranty Claims",
+            "label": "Open & Overdue Claims",
             "route": "/portal/reporting/open-overdue-warranty-claims",
             "docType": "Warranty Claim"
           },
           {
-            "label": "Supplier Warranty Claims and Recoveries",
+            "label": "Supplier Warranty Claims",
             "route": "/portal/reporting/supplier-warranty-claims-recoveries",
             "docType": "Warranty Claim"
           },
           {
-            "label": "Project Warranty and Defects Liability Expiry",
+            "label": "Project Warranty Expiry",
             "route": "/portal/reporting/project-warranty-defects-liability-expiry",
             "docType": "Warranty Claim"
           },
           {
-            "label": "Outstanding Defect Rectifications",
+            "label": "Defect Rectifications Log",
             "route": "/portal/reporting/outstanding-defect-rectifications",
             "docType": "Warranty Claim"
           },
           {
-            "label": "Warranty Costs by Project and Product",
+            "label": "Warranty Costs by Project",
             "route": "/portal/reporting/warranty-costs-by-project-product",
             "docType": "Warranty Claim"
           }
@@ -1404,7 +1414,6 @@ export function getAllWorkspaceRoutes() {
 export const workspaces = WORKSPACES;
 
 export function getNavigationByDocType(docType) {
-  if (!docType) return null;
   for (const ws of WORKSPACES) {
     for (const sec of ws.sections || []) {
       for (const item of sec.items || []) {
@@ -1424,28 +1433,24 @@ export function getNavigationByDocType(docType) {
 }
 
 export function openDocument(docType, name, router, currentRoutePath = '') {
-  if (!docType || !name || !router) return;
 
   const encodedName = encodeURIComponent(name);
 
-  // If currently on a list page matching currentRoutePath, append name
   if (currentRoutePath && currentRoutePath.startsWith('/portal/')) {
     const cleanPath = currentRoutePath.split('?')[0].replace(/\/$/, '');
     const parts = cleanPath.split('/');
     if (parts.length === 4) {
-      router.push(`${cleanPath}/${encodedName}`);
+      router.push();
       return;
     }
   }
 
-  // Lookup in WORKSPACES
   const navInfo = getNavigationByDocType(docType);
   if (navInfo && navInfo.moduleRoute) {
-    router.push(`${navInfo.moduleRoute}/${encodedName}`);
+    router.push();
     return;
   }
 
-  // Fallback route
   const fallbackMod = docType.toLowerCase().replace(/ /g, '-');
-  router.push(`/portal/project-management/${fallbackMod}/${encodedName}`);
+  router.push();
 }

@@ -4,23 +4,23 @@
     <div 
       v-if="!navStore.sidebarCollapsed"
       @click="navStore.closeSidebar"
-      class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-20 transition-opacity"
+      class="fixed inset-0 bg-white/30 backdrop-blur-xs z-20 transition-opacity"
     ></div>
 
     <!-- Workspaces Drawer / Sidebar -->
     <aside 
       :class="[
-        'fixed top-12 bottom-0 left-0 bg-slate-900 border-r border-slate-800/80 flex flex-col transition-all duration-300 z-30 select-none shadow-2xl w-64',
+        'fixed top-12 bottom-0 left-0 bg-white border-r border-slate-200 flex flex-col transition-all duration-300 z-30 select-none shadow-xl w-64',
         navStore.sidebarCollapsed ? '-translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100 pointer-events-auto'
       ]"
     >
-      <div class="p-3.5 border-b border-slate-800/60 flex items-center justify-between">
-        <span class="text-xs font-bold tracking-wider text-slate-300 uppercase">
+      <div class="p-3.5 border-b border-slate-200 flex items-center justify-between">
+        <span class="text-sm font-bold tracking-wider text-slate-600 uppercase">
           WORKSPACES
         </span>
         <button 
           @click="navStore.closeSidebar"
-          class="p-1 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded transition-colors"
+          class="p-1 hover:bg-slate-100 text-slate-600 hover:text-slate-700 rounded transition-colors"
         >
           <X class="w-4 h-4" />
         </button>
@@ -33,16 +33,16 @@
           :to="ws.route"
           @click="handleWorkspaceClick(ws.id)"
           :class="[
-            'flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all group',
+            'flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group',
             isWorkspaceActive(ws.id)
-              ? 'bg-blue-950/70 text-blue-400 border border-blue-600/40 shadow-sm font-semibold'
-              : 'text-slate-300 hover:bg-slate-800/80 hover:text-slate-100'
+              ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-xs font-semibold'
+              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
           ]"
         >
           <span 
             :class="[
               'text-[11px] font-mono w-5 text-right font-medium shrink-0',
-              isWorkspaceActive(ws.id) ? 'text-blue-400 font-bold' : 'text-slate-500 group-hover:text-slate-400'
+              isWorkspaceActive(ws.id) ? 'text-blue-600 font-bold' : 'text-slate-600 group-hover:text-slate-600'
             ]"
           >
             {{ ws.number }}

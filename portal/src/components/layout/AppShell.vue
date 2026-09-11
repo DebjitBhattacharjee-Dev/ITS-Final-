@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-slate-950 flex flex-col font-sans">
+  <div class="min-h-screen bg-slate-50 flex flex-col font-sans">
     <TopBar />
     <div class="flex-1 flex overflow-hidden">
       <Sidebar />
-      <main class="flex-1 overflow-y-auto p-6 bg-slate-950">
+      <main class="flex-1 overflow-y-auto p-6 bg-slate-50">
         <slot />
       </main>
     </div>

@@ -71,6 +71,37 @@ export async function applyWorkflowAction(doctype, name, action) {
   return response.data.message || response.data
 }
 
+export async function deleteDocument(doctype, name) {
+  const response = await api.post("/api/method/its_ui_redesign.api.common.delete_document", {
+    doctype,
+    name
+  })
+  return response.data.message || response.data
+}
+
+export async function deleteDocumentsBulk(doctype, names) {
+  const response = await api.post("/api/method/its_ui_redesign.api.common.delete_documents_bulk", {
+    doctype,
+    names: JSON.stringify(names)
+  })
+  return response.data.message || response.data
+}
+
+export async function getTreeNodes(doctype, parentField = null, parentVal = null) {
+  const response = await api.get("/api/method/its_ui_redesign.api.common.get_tree_nodes", {
+    params: { doctype, parent_field: parentField, parent_val: parentVal }
+  })
+  return response.data.message || response.data
+}
+
+export async function duplicateDocument(doctype, name) {
+  const response = await api.post("/api/method/its_ui_redesign.api.common.duplicate_document", {
+    doctype,
+    name
+  })
+  return response.data.message || response.data
+}
+
 export async function searchLinkOptions(doctype, txt = "", filters = {}) {
   const response = await api.get("/api/method/its_ui_redesign.api.common.search_link_options", {
     params: { doctype, txt, filters: JSON.stringify(filters) }
@@ -95,6 +126,11 @@ export async function fetchDocList(doctype, fields = ["name", "modified"], filte
   return res.data || []
 }
 
+
+export async function callApi(method, params = {}) {
+  const response = await api.post(`/api/method/${method}`, params)
+  return response.data.message !== undefined ? response.data.message : response.data
+}
 
 export async function fetchWorkspaceDashboard(workspaceId, filters = {}) {
   return callApi('its_ui_redesign.api.common.get_workspace_dashboard', {
@@ -134,4 +170,11 @@ export async function validateClientPOMatch(quotationName, customerPOAmount) {
     quotation_name: quotationName,
     customer_po_amount: customerPOAmount
   })
+}
+
+export async function globalSearch(query) {
+  const response = await api.get("/api/method/its_ui_redesign.api.search.global_search", {
+    params: { query }
+  })
+  return response.data.message || response.data
 }

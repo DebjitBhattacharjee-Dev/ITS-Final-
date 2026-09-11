@@ -10,72 +10,39 @@
 
     <!-- STANDARD DOCTYPE LIST VIEW & DOCUMENT ENGINE -->
     <template v-else>
-      <PageHeader 
-        :title="pageInfo.title" 
-        :description="`View and manage ${pageInfo.title} records.`"
-      >
-        <template #actions>
-          <div class="flex items-center space-x-2">
-            <button
-              @click="loadData"
-              class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded text-xs font-medium flex items-center space-x-1.5 transition-colors"
-            >
-              <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
-              <span>Refresh</span>
-            </button>
-            <button
-              @click="openCreateDrawer"
-              class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-semibold flex items-center space-x-1.5 transition-colors shadow-sm"
-            >
-              <Plus class="w-3.5 h-3.5" />
-              <span>New {{ pageInfo.title }}</span>
-            </button>
-          </div>
-        </template>
-      </PageHeader>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
-        <DataTable
-          :columns="columns"
-          :rows="rows"
-          :total-count="totalCount"
-          :page="page"
-          :page-size="pageSize"
-          :loading="loading"
-          :error="error"
-          @search="handleSearch"
-          @page-change="handlePageChange"
-          @row-click="handleRowClick"
-        />
-      </div>
+      <GenericListView
+        :doc-type="pageInfo.docType"
+        :page-title="pageInfo.title"
+        @open-create="openCreateDrawer"
+      />
 
       <!-- Record Detail Modal Drawer -->
       <div 
         v-if="selectedDoc" 
-        class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex justify-end z-40 transition-opacity"
+        class="fixed inset-0 bg-white/30 backdrop-blur-xs flex justify-end z-40 transition-opacity"
         @click.self="selectedDoc = null"
       >
-        <div class="w-full max-w-2xl bg-slate-900 border-l border-slate-800 h-full flex flex-col shadow-2xl overflow-hidden animate-slide-left">
-          <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
+        <div class="w-full max-w-2xl bg-white border-l border-slate-200 h-full flex flex-col shadow-2xl overflow-hidden animate-slide-left">
+          <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-white">
             <div>
               <div class="flex items-center space-x-2">
-                <span class="text-xs font-mono font-bold text-blue-400">{{ selectedDoc.name }}</span>
+                <span class="text-sm font-mono font-bold text-blue-600">{{ selectedDoc.name }}</span>
                 <StatusBadge :status="selectedDoc.status || 'Draft'" />
               </div>
-              <h3 class="text-sm font-semibold text-slate-100 mt-1">
+              <h3 class="text-sm font-semibold text-slate-900 mt-1">
                 {{ selectedDoc.title || selectedDoc.name }}
               </h3>
             </div>
             <button 
               @click="selectedDoc = null"
-              class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors"
+              class="p-1 hover:bg-slate-100 rounded text-slate-600 hover:text-slate-800 transition-colors"
             >
               <X class="w-5 h-5" />
             </button>
           </div>
 
           <!-- Document Action Toolbar -->
-          <div class="px-4 py-2 bg-slate-950 border-b border-slate-800/80 flex items-center justify-between flex-wrap gap-2 text-xs">
+          <div class="px-4 py-2 bg-white border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 text-sm">
             <!-- Dynamic Workflow Actions -->
             <div v-if="workflowInfo && workflowInfo.transitions && workflowInfo.transitions.length" class="flex items-center space-x-1.5">
               <button
@@ -93,7 +60,7 @@
               <button
                 v-if="selectedPermissions && selectedPermissions.write && selectedDoc.docstatus === 0"
                 @click="openEditDrawer"
-                class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded flex items-center space-x-1 transition-colors"
+                class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded flex items-center space-x-1 transition-colors"
               >
                 <Edit3 class="w-3 h-3" />
                 <span>Edit</span>
@@ -127,34 +94,34 @@
 
             <template v-else>
               <!-- Primary Document Info Grid -->
-              <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4">
-                <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Document Details</h4>
+              <div class="bg-white/30 border border-slate-200 rounded-xl p-4">
+                <h4 class="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-3">Document Details</h4>
                 <div class="grid grid-cols-2 gap-4">
                   <div 
                     v-for="(val, key) in filterDisplayFields(selectedDoc)" 
                     :key="key"
-                    class="border-b border-slate-800/40 pb-2"
+                    class="border-b border-slate-200/40 pb-2"
                   >
-                    <div class="text-[10px] text-slate-500 font-mono uppercase">{{ formatFieldLabel(key) }}</div>
-                    <div class="text-xs text-slate-200 font-mono mt-0.5 break-words">{{ val }}</div>
+                    <div class="text-[10px] text-slate-600 font-mono uppercase">{{ formatFieldLabel(key) }}</div>
+                    <div class="text-sm text-slate-800 font-mono mt-0.5 break-words">{{ val }}</div>
                   </div>
                 </div>
               </div>
 
               <!-- Child Tables Preview -->
-              <div v-for="(childRows, childKey) in filterChildTables(selectedDoc)" :key="childKey" class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4">
-                <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3 flex items-center justify-between">
+              <div v-for="(childRows, childKey) in filterChildTables(selectedDoc)" :key="childKey" class="bg-white/30 border border-slate-200 rounded-xl p-4">
+                <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3 flex items-center justify-between">
                   <span>{{ formatFieldLabel(childKey) }}</span>
-                  <span class="text-[10px] text-slate-500 font-mono">{{ childRows.length }} rows</span>
+                  <span class="text-[10px] text-slate-600 font-mono">{{ childRows.length }} rows</span>
                 </h4>
                 <div class="overflow-x-auto">
-                  <table class="w-full text-left text-xs font-mono">
+                  <table class="w-full text-left text-sm font-mono">
                     <thead>
-                      <tr class="text-slate-500 border-b border-slate-800 text-[10px] uppercase">
+                      <tr class="text-slate-600 border-b border-slate-200 text-[10px] uppercase">
                         <th v-for="(v, k) in childRows[0]" :key="k" class="py-1.5 px-2">{{ formatFieldLabel(k) }}</th>
                       </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-800/40 text-slate-300">
+                    <tbody class="divide-y divide-slate-200/40 text-slate-700">
                       <tr v-for="(r, idx) in childRows" :key="idx">
                         <td v-for="(v, k) in r" :key="k" class="py-1.5 px-2 truncate max-w-[150px]">{{ v }}</td>
                       </tr>
@@ -164,8 +131,8 @@
               </div>
 
               <!-- Related Documents -->
-              <div v-if="relatedDocs && relatedDocs.length" class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4">
-                <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Related ERPNext Documents</h4>
+              <div v-if="relatedDocs && relatedDocs.length" class="bg-white/30 border border-slate-200 rounded-xl p-4">
+                <h4 class="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-3">Related ERPNext Documents</h4>
                 <RelatedDocuments :documents="relatedDocs" />
               </div>
             </template>
@@ -188,9 +155,10 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { RefreshCw, Plus, X, Edit3 } from 'lucide-vue-next'
 import PageHeader from '../components/layout/PageHeader.vue'
+import GenericListView from '../components/tables/GenericListView.vue'
 import DataTable from '../components/tables/DataTable.vue'
 import StatusBadge from '../components/tables/StatusBadge.vue'
 import RelatedDocuments from '../components/documents/RelatedDocuments.vue'
@@ -207,8 +175,14 @@ import {
   applyWorkflowAction 
 } from '../services/api'
 import { workspaces, openDocument } from '../config/navigation'
+import { useNotificationStore } from '../stores/notification'
+import { extractFrappeErrorMessage } from '../utils/error'
+
+const notificationStore = useNotificationStore()
+
 
 const route = useRoute()
+const router = useRouter()
 const loading = ref(false)
 const error = ref('')
 const rows = ref([])
@@ -388,10 +362,10 @@ const handleCreateTarget = async (targetDocType) => {
       drawerMode.value = 'create'
       drawerOpen.value = true
     } else {
-      alert("Failed to pre-fill payload: " + (res?.error?.message || "Unknown error"))
+      notificationStore.showError('Create Action Error', extractFrappeErrorMessage(res, null))
     }
   } catch (err) {
-    alert("Error preparing target document: " + (err.message || "Unknown error"))
+    notificationStore.showError('Create Action Error', extractFrappeErrorMessage(null, err))
   }
 }
 
@@ -417,9 +391,9 @@ const handleRecordSaved = (savedDoc) => {
   if (selectedDoc.value && savedDoc && savedDoc.name === selectedDoc.value.name) {
     selectedDoc.value = savedDoc
   }
+  notificationStore.showSuccess('Document saved successfully')
   loadData()
 }
-
 
 const handlePrintPdf = async () => {
   if (!selectedDoc.value) return
@@ -436,10 +410,10 @@ const handlePrintPdf = async () => {
       const blobUrl = URL.createObjectURL(blob)
       window.open(blobUrl, '_blank')
     } else {
-      alert('Print error: ' + (res?.error?.message || 'Failed to generate PDF'))
+      notificationStore.showError('Print Error', extractFrappeErrorMessage(res, null))
     }
   } catch (err) {
-    alert('Print error: ' + (err.message || 'Error communicating with server'))
+    notificationStore.showError('Print Error', extractFrappeErrorMessage(null, err))
   }
 }
 
@@ -448,20 +422,21 @@ const handleSubmitDoc = async () => {
     if (pageInfo.value.docType === "Purchase Order") {
       const gateRes = await validateSupplierPORelease(selectedDoc.value.name)
       if (!gateRes.success) {
-        alert("BUSINESS GATE BLOCKED: " + (gateRes.error?.message || "Finance Commitment required."))
+        notificationStore.showWarning("Business Gate Blocked", gateRes.error?.message || "Finance Commitment required.")
         return
       }
     }
     const res = await submitDocument(pageInfo.value.docType, selectedDoc.value.name)
     if (res.success) {
       selectedDoc.value = res.data
+      notificationStore.showSuccess('Document submitted successfully')
       loadContextualTargets(pageInfo.value.docType)
       loadData()
     } else {
-      alert('Submit error: ' + (res.error?.message || 'Failed to submit'))
+      notificationStore.showError('Submit Error', extractFrappeErrorMessage(res, null))
     }
   } catch (err) {
-    alert('Submit error: ' + (err.response?.data?.message || err.message))
+    notificationStore.showError('Submit Error', extractFrappeErrorMessage(null, err))
   }
 }
 
@@ -470,13 +445,14 @@ const handleCancelDoc = async () => {
     const res = await cancelDocument(pageInfo.value.docType, selectedDoc.value.name)
     if (res.success) {
       selectedDoc.value = res.data
+      notificationStore.showSuccess('Document cancelled successfully')
       loadContextualTargets(pageInfo.value.docType)
       loadData()
     } else {
-      alert('Cancel error: ' + (res.error?.message || 'Failed to cancel'))
+      notificationStore.showError('Cancel Error', extractFrappeErrorMessage(res, null))
     }
   } catch (err) {
-    alert('Cancel error: ' + (err.response?.data?.message || err.message))
+    notificationStore.showError('Cancel Error', extractFrappeErrorMessage(null, err))
   }
 }
 
@@ -486,11 +462,12 @@ const handleAmendDoc = async () => {
     if (res.success) {
       editData.value = res.data
       drawerOpen.value = true
+      notificationStore.showSuccess('Amended draft created')
     } else {
-      alert('Amend error: ' + (res.error?.message || 'Failed to amend'))
+      notificationStore.showError('Amend Error', extractFrappeErrorMessage(res, null))
     }
   } catch (err) {
-    alert('Amend error: ' + (err.response?.data?.message || err.message))
+    notificationStore.showError('Amend Error', extractFrappeErrorMessage(null, err))
   }
 }
 
@@ -499,16 +476,18 @@ const handleWorkflowAction = async (action) => {
     const res = await applyWorkflowAction(pageInfo.value.docType, selectedDoc.value.name, action)
     if (res.success) {
       selectedDoc.value = res.data
+      notificationStore.showSuccess(`Workflow action "${action}" applied`)
       loadContextualTargets(pageInfo.value.docType)
       handleRowClick(selectedDoc.value)
       loadData()
     } else {
-      alert('Workflow error: ' + (res.error?.message || 'Failed action'))
+      notificationStore.showError('Workflow Error', extractFrappeErrorMessage(res, null))
     }
   } catch (err) {
-    alert('Workflow error: ' + (err.response?.data?.message || err.message))
+    notificationStore.showError('Workflow Error', extractFrappeErrorMessage(null, err))
   }
 }
+
 
 const filterDisplayFields = (doc) => {
   if (!doc) return {}

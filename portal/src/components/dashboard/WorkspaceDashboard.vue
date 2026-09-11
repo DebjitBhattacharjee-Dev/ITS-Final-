@@ -1,20 +1,20 @@
 <template>
   <div class="space-y-6">
     <!-- Header & Filter Bar -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 border border-slate-800 p-4 rounded-xl backdrop-blur-sm">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-xl backdrop-blur-sm">
       <div>
-        <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-          <LayoutDashboard class="w-5 h-5 text-blue-400" />
+        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <LayoutDashboard class="w-5 h-5 text-blue-600" />
           {{ workspaceTitle }}
         </h2>
-        <p class="text-xs text-slate-400 mt-0.5">Real-time ERPNext live operational metrics & business analytics</p>
+        <p class="text-sm text-slate-600 mt-0.5">Real-time ERPNext live operational metrics & business analytics</p>
       </div>
 
       <div class="flex items-center gap-3">
         <button 
           @click="loadDashboard" 
           :disabled="loading"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition-colors disabled:opacity-50"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-medium rounded-lg border border-slate-200 transition-colors disabled:opacity-50"
         >
           <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
           Refresh
@@ -24,7 +24,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div v-for="i in 4" :key="i" class="h-28 bg-slate-900/60 border border-slate-800 rounded-xl animate-pulse"></div>
+      <div v-for="i in 4" :key="i" class="h-28 bg-white border border-slate-200 rounded-xl animate-pulse"></div>
     </div>
 
     <template v-else>
@@ -34,17 +34,17 @@
           v-for="(kpi, idx) in dashboard.kpis" 
           :key="idx"
           @click="handleKpiClick(kpi)"
-          class="bg-slate-900 border border-slate-800 hover:border-blue-600/50 cursor-pointer rounded-xl p-4 transition-all shadow-sm flex flex-col justify-between group"
+          class="bg-white border border-slate-200 hover:border-blue-600/50 cursor-pointer rounded-xl p-4 transition-all shadow-sm flex flex-col justify-between group"
         >
-          <div class="flex items-center justify-between text-slate-400 mb-2">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-200 transition-colors">{{ kpi.label }}</span>
+          <div class="flex items-center justify-between text-slate-600 mb-2">
+            <span class="text-sm font-semibold uppercase tracking-wider text-slate-600 group-hover:text-slate-800 transition-colors">{{ kpi.label }}</span>
             <component :is="getKpiIcon(kpi.color)" class="w-4 h-4" :class="getKpiIconClass(kpi.color)" />
           </div>
           <div>
-            <div class="text-2xl font-bold text-slate-100 font-mono tracking-tight group-hover:text-blue-400 transition-colors">
+            <div class="text-2xl font-bold text-slate-900 font-mono tracking-tight group-hover:text-blue-600 transition-colors">
               {{ formatVal(kpi.value, kpi.type) }}
             </div>
-            <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+            <div class="text-[11px] text-slate-600 mt-1 flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full" :class="getKpiDotClass(kpi.color)"></span>
               Live Frappe database metric
             </div>
@@ -57,20 +57,20 @@
         <div 
           v-for="(chart, cIdx) in dashboard.charts" 
           :key="cIdx"
-          class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm flex flex-col justify-between"
+          class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between"
         >
-          <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <BarChart2 class="w-4 h-4 text-blue-400" />
+          <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <BarChart2 class="w-4 h-4 text-blue-600" />
             {{ chart.title }}
           </h3>
 
           <div v-if="chart.data && chart.data.length" class="space-y-3">
             <div v-for="(item, iIdx) in chart.data" :key="iIdx" class="space-y-1">
-              <div class="flex items-center justify-between text-xs font-medium">
-                <span class="text-slate-300 truncate">{{ item[chart.label_key] || 'Unspecified' }}</span>
-                <span class="font-mono text-slate-200">{{ item[chart.val_key] }}</span>
+              <div class="flex items-center justify-between text-sm font-medium">
+                <span class="text-slate-700 truncate">{{ item[chart.label_key] || 'Unspecified' }}</span>
+                <span class="font-mono text-slate-800">{{ item[chart.val_key] }}</span>
               </div>
-              <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+              <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                 <div 
                   class="h-full bg-blue-500 rounded-full transition-all duration-500"
                   :style="{ width: getPercentage(item[chart.val_key], chart.data, chart.val_key) + '%' }"
@@ -78,41 +78,41 @@
               </div>
             </div>
           </div>
-          <div v-else class="py-8 text-center text-xs text-slate-500">
+          <div v-else class="py-8 text-center text-sm text-slate-600">
             No records found for distribution breakdown
           </div>
         </div>
       </div>
 
       <!-- Recent Records Quick Table -->
-      <div v-if="dashboard.recent_list && dashboard.recent_list.length" class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+      <div v-if="dashboard.recent_list && dashboard.recent_list.length" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+          <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-2">
             <FileText class="w-4 h-4 text-emerald-400" />
             Recent Operational {{ dashboard.doctype }} Records
           </h3>
-          <span class="text-[11px] text-slate-500 font-mono">{{ dashboard.recent_list.length }} items</span>
+          <span class="text-[11px] text-slate-600 font-mono">{{ dashboard.recent_list.length }} items</span>
         </div>
 
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
+          <table class="w-full text-left text-sm">
             <thead>
-              <tr class="text-slate-400 border-b border-slate-800 uppercase text-[10px] tracking-wider font-semibold">
+              <tr class="text-slate-600 border-b border-slate-200 uppercase text-[10px] tracking-wider font-semibold">
                 <th class="py-2.5 px-3">Record ID</th>
                 <th class="py-2.5 px-3">Title / Details</th>
                 <th class="py-2.5 px-3">Status</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-800/60 text-slate-300 font-mono">
+            <tbody class="divide-y divide-slate-200/60 text-slate-700 font-mono">
               <tr 
                 v-for="rec in dashboard.recent_list" 
                 :key="rec.name"
-                class="hover:bg-slate-800/40 transition-colors"
+                class="hover:bg-slate-50 transition-colors"
               >
-                <td class="py-2.5 px-3 font-bold text-blue-400">
+                <td class="py-2.5 px-3 font-bold text-blue-600">
                   {{ rec.name }}
                 </td>
-                <td class="py-2.5 px-3 text-slate-200">
+                <td class="py-2.5 px-3 text-slate-800">
                   {{ rec.project_name || rec.subject || rec.title || rec.customer || rec.supplier || rec.employee_name || rec.production_item || 'Record Item' }}
                 </td>
                 <td class="py-2.5 px-3">
@@ -211,7 +211,7 @@ const getKpiIconClass = (color) => {
   if (color === 'rose') return 'text-rose-400'
   if (color === 'purple') return 'text-purple-400'
   if (color === 'indigo') return 'text-indigo-400'
-  return 'text-blue-400'
+  return 'text-blue-600'
 }
 
 const getKpiDotClass = (color) => {
@@ -229,7 +229,7 @@ const getStatusBadgeClass = (status) => {
     return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
   }
   if (s.includes('open') || s.includes('working') || s.includes('in progress')) {
-    return 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+    return 'bg-blue-500/10 text-blue-600 border-blue-500/30'
   }
   if (s.includes('draft') || s.includes('pending')) {
     return 'bg-amber-500/10 text-amber-400 border-amber-500/30'
@@ -237,6 +237,6 @@ const getStatusBadgeClass = (status) => {
   if (s.includes('overdue') || s.includes('cancelled') || s.includes('rejected')) {
     return 'bg-rose-500/10 text-rose-400 border-rose-500/30'
   }
-  return 'bg-slate-800 text-slate-300 border-slate-700'
+  return 'bg-slate-100 text-slate-700 border-slate-200'
 }
 </script>

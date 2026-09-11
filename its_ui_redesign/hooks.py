@@ -28,3 +28,17 @@ fixtures = [
         "Management Viewer"
     ]]]}
 ]
+
+doc_events = {
+    "Purchase Order": {
+        "validate": "its_ui_redesign.api.common.validate_purchase_order_hard_stop",
+        "on_submit": "its_ui_redesign.api.common.validate_purchase_order_hard_stop"
+    },
+    "Delivery Note": {
+        "on_submit": "its_ui_redesign.api.common.validate_delivery_note_hard_stop"
+    },
+    "Sales Invoice": {
+        "on_submit": "its_ui_redesign.api.common.validate_sales_invoice_hard_stop"
+    }
+}
+

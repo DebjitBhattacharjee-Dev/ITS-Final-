@@ -1,15 +1,15 @@
 <template>
-  <div class="bg-slate-900 border border-slate-800/80 rounded-lg shadow-sm overflow-hidden">
+  <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
     <!-- Header Controls -->
-    <div class="p-3 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3 bg-slate-900/60">
+    <div class="p-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-white">
       <div class="relative flex-1 min-w-[200px] max-w-xs">
-        <Search class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+        <Search class="w-3.5 h-3.5 text-slate-600 absolute left-2.5 top-1/2 -translate-y-1/2" />
         <input 
           v-model="searchQuery"
           @input="$emit('search', searchQuery)"
           type="text"
           :placeholder="searchPlaceholder"
-          class="w-full bg-slate-950 border border-slate-800 rounded pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-600 transition-colors"
+          class="w-full bg-white border border-slate-200 rounded pl-8 pr-3 py-1.5 text-sm text-slate-800 placeholder-slate-500 focus:outline-none focus:border-blue-600 transition-colors"
         />
       </div>
 
@@ -24,8 +24,8 @@
     <EmptyState v-else-if="displayRows.length === 0" />
 
     <div v-else class="overflow-x-auto">
-      <table class="w-full text-left text-xs">
-        <thead class="bg-slate-950/80 border-b border-slate-800/80 text-slate-400 font-semibold uppercase text-[10px] tracking-wider select-none">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold uppercase text-[10px] tracking-wider select-none">
           <tr>
             <th 
               v-for="col in columns" 
@@ -36,21 +36,21 @@
             </th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-800/50">
+        <tbody class="divide-y divide-slate-200/50">
           <tr 
             v-for="(row, idx) in displayRows" 
             :key="row.name || idx"
             @click="$emit('row-click', row)"
-            class="hover:bg-slate-800/60 cursor-pointer transition-colors group"
+            class="hover:bg-slate-100 cursor-pointer transition-colors group"
           >
             <td 
               v-for="col in columns" 
               :key="col.key"
-              class="py-2.5 px-3 text-slate-300 font-normal truncate max-w-xs"
+              class="py-2.5 px-3 text-slate-700 font-medium truncate max-w-xs"
             >
               <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
                 <StatusBadge v-if="col.key === 'status'" :status="row[col.key]" />
-                <span v-else-if="['name', 'title', 'id', 'customer_name', 'supplier_name', 'project_name'].includes(col.key)" class="font-mono text-blue-400 font-medium group-hover:underline">{{ row[col.key] }}</span>
+                <span v-else-if="['name', 'title', 'id', 'customer_name', 'supplier_name', 'project_name'].includes(col.key)" class="font-mono text-blue-600 font-medium group-hover:underline">{{ row[col.key] }}</span>
                 <span v-else>{{ row[col.key] }}</span>
               </slot>
             </td>
@@ -60,21 +60,21 @@
     </div>
 
     <!-- Pagination -->
-    <div v-if="totalRecords > 0" class="p-2.5 border-t border-slate-800/80 bg-slate-950/50 flex items-center justify-between text-xs text-slate-400">
+    <div v-if="totalRecords > 0" class="p-2.5 border-t border-slate-200 bg-white/20 flex items-center justify-between text-sm text-slate-600">
       <span>Showing {{ paginationStart }} to {{ paginationEnd }} of {{ totalRecords }} records</span>
       <div class="flex items-center space-x-1">
         <button 
           @click="changePage(currentPage - 1)" 
           :disabled="currentPage <= 1"
-          class="px-2.5 py-1 bg-slate-800/60 hover:bg-slate-800 text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-800/60 rounded border border-slate-700/50 transition-colors"
+          class="px-2.5 py-1 bg-slate-100 hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:hover:bg-slate-100 rounded border border-slate-200/50 transition-colors"
         >
           Previous
         </button>
-        <span class="px-2 font-mono text-slate-300">{{ currentPage }} / {{ maxPage }}</span>
+        <span class="px-2 font-mono text-slate-700">{{ currentPage }} / {{ maxPage }}</span>
         <button 
           @click="changePage(currentPage + 1)" 
           :disabled="currentPage >= maxPage"
-          class="px-2.5 py-1 bg-slate-800/60 hover:bg-slate-800 text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-800/60 rounded border border-slate-700/50 transition-colors"
+          class="px-2.5 py-1 bg-slate-100 hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:hover:bg-slate-100 rounded border border-slate-200/50 transition-colors"
         >
           Next
         </button>
