@@ -1,7 +1,7 @@
 <template>
   <div>
     <PageHeader 
-      title="Executive &amp; Operations Dashboard" 
+      title="Executive & Operations Dashboard" 
       description="Real-time KPI overview across active projects, cost controls, procurement, inventory, and warranties."
     />
 
@@ -12,26 +12,26 @@
           <span class="text-xs font-semibold uppercase tracking-wider">Active Projects</span>
           <FolderKanban class="w-4 h-4 text-blue-400" />
         </div>
-        <div class="text-2xl font-bold text-slate-100 font-mono">{{ metrics.active_projects || 8 }}</div>
-        <div class="text-[11px] text-emerald-400 mt-1">2 completed this month</div>
+        <div class="text-2xl font-bold text-slate-100 font-mono">{{ metrics.active_projects ?? 0 }}</div>
+        <div class="text-[11px] text-slate-400 mt-1">{{ metrics.completed_projects ?? 0 }} completed</div>
       </div>
 
       <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm">
         <div class="flex items-center justify-between text-slate-400 mb-2">
-          <span class="text-xs font-semibold uppercase tracking-wider">Contract Revenue</span>
+          <span class="text-xs font-semibold uppercase tracking-wider">Sales Revenue</span>
           <Landmark class="w-4 h-4 text-emerald-400" />
         </div>
-        <div class="text-2xl font-bold text-slate-100 font-mono">${{ formatCurrency(metrics.total_sales || 14250000) }}</div>
-        <div class="text-[11px] text-slate-400 mt-1">Certified progress claims</div>
+        <div class="text-2xl font-bold text-slate-100 font-mono">AED {{ formatCurrency(metrics.total_sales) }}</div>
+        <div class="text-[11px] text-slate-400 mt-1">Submitted Sales Invoices</div>
       </div>
 
       <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm">
         <div class="flex items-center justify-between text-slate-400 mb-2">
-          <span class="text-xs font-semibold uppercase tracking-wider">Committed Cost</span>
+          <span class="text-xs font-semibold uppercase tracking-wider">Purchase Commitments</span>
           <ShoppingCart class="w-4 h-4 text-amber-400" />
         </div>
-        <div class="text-2xl font-bold text-slate-100 font-mono">${{ formatCurrency(metrics.total_purchases || 9820000) }}</div>
-        <div class="text-[11px] text-amber-400 mt-1">Within budget allowance</div>
+        <div class="text-2xl font-bold text-slate-100 font-mono">AED {{ formatCurrency(metrics.total_purchases) }}</div>
+        <div class="text-[11px] text-slate-400 mt-1">Submitted Purchase Orders</div>
       </div>
 
       <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-sm">
@@ -39,8 +39,8 @@
           <span class="text-xs font-semibold uppercase tracking-wider">Active Warranties</span>
           <ShieldCheck class="w-4 h-4 text-blue-400" />
         </div>
-        <div class="text-2xl font-bold text-slate-100 font-mono">{{ metrics.expiring_warranties || 14 }}</div>
-        <div class="text-[11px] text-blue-400 mt-1">4 expiring in 30 days</div>
+        <div class="text-2xl font-bold text-slate-100 font-mono">{{ metrics.expiring_warranties ?? 0 }}</div>
+        <div class="text-[11px] text-slate-400 mt-1">{{ metrics.open_ncrs ?? 0 }} Open Quality NCRs</div>
       </div>
     </div>
 
@@ -67,17 +67,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { FolderKanban, Landmark, ShoppingCart, ShieldCheck, ChevronRight } from 'lucide-vue-next'
-import PageHeader from '../components/layout/PageHeader.vue'
-import { useNavigationStore } from '../stores/navigation'
-import { fetchDashboardSummary } from '../services/api'
+import { ref, onMounted } from "vue"
+import { FolderKanban, Landmark, ShoppingCart, ShieldCheck, ChevronRight } from "lucide-vue-next"
+import PageHeader from "../components/layout/PageHeader.vue"
+import { useNavigationStore } from "../stores/navigation"
+import { fetchDashboardSummary } from "../services/api"
 
 const navStore = useNavigationStore()
 const metrics = ref({})
 
 const formatCurrency = (val) => {
-  return Number(val || 0).toLocaleString('en-US')
+  return Number(val || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 onMounted(async () => {
@@ -85,7 +85,7 @@ onMounted(async () => {
     const data = await fetchDashboardSummary()
     metrics.value = data || {}
   } catch (err) {
-    // Uses template defaults if API call fails
+    console.error("Dashboard metrics error:", err)
   }
 })
 </script>

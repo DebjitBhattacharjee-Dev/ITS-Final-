@@ -4,7 +4,8 @@ import { workspaces } from '../config/navigation'
 
 export const useNavigationStore = defineStore('navigation', () => {
   const activeWorkspaceId = ref('project-management')
-  const sidebarCollapsed = ref(false)
+  // Workspaces sidebar is CLOSED by default on initial login/page load
+  const sidebarCollapsed = ref(true)
 
   const activeWorkspace = computed(() => {
     return workspaces.find(w => w.id === activeWorkspaceId.value) || workspaces[0]
@@ -18,12 +19,22 @@ export const useNavigationStore = defineStore('navigation', () => {
     sidebarCollapsed.value = !sidebarCollapsed.value
   }
 
+  function closeSidebar() {
+    sidebarCollapsed.value = true
+  }
+
+  function openSidebar() {
+    sidebarCollapsed.value = false
+  }
+
   return {
     workspaces,
     activeWorkspaceId,
     activeWorkspace,
     sidebarCollapsed,
     setWorkspace,
-    toggleSidebar
+    toggleSidebar,
+    closeSidebar,
+    openSidebar
   }
 })

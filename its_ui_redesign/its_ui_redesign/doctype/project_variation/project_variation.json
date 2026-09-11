@@ -1,0 +1,118 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "PV-.YYYY.-.#####",
+ "creation": "2026-09-11 02:09:37.379924",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "project",
+  "title",
+  "variation_type",
+  "cost_impact",
+  "time_extension_days",
+  "status",
+  "description",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Project",
+   "options": "Project",
+   "reqd": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Variation Title",
+   "reqd": 1
+  },
+  {
+   "default": "Scope Addition",
+   "fieldname": "variation_type",
+   "fieldtype": "Select",
+   "label": "Variation Type",
+   "options": "Scope Addition\nScope Omission\nDesign Change\nUnforeseen Site Condition"
+  },
+  {
+   "fieldname": "cost_impact",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Cost Impact (AED)"
+  },
+  {
+   "fieldname": "time_extension_days",
+   "fieldtype": "Int",
+   "label": "Time Extension (Days)"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nPending Review\nApproved\nRejected"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "Detailed Description"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Project Variation",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-11 02:09:37.379924",
+ "modified_by": "Administrator",
+ "module": "ITS UI Redesign",
+ "name": "Project Variation",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

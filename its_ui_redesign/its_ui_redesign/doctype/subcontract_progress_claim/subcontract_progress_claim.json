@@ -1,0 +1,145 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "SPC-.YYYY.-.#####",
+ "creation": "2026-09-11 02:10:14.086321",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "project",
+  "subcontractor",
+  "claim_date",
+  "period_start",
+  "period_end",
+  "total_claimed",
+  "total_certified",
+  "retention_amount",
+  "status",
+  "items_section",
+  "items",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Project",
+   "options": "Project",
+   "reqd": 1
+  },
+  {
+   "fieldname": "subcontractor",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Subcontractor",
+   "options": "Supplier",
+   "reqd": 1
+  },
+  {
+   "fieldname": "claim_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Claim Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "period_start",
+   "fieldtype": "Date",
+   "label": "Period Start"
+  },
+  {
+   "fieldname": "period_end",
+   "fieldtype": "Date",
+   "label": "Period End"
+  },
+  {
+   "fieldname": "total_claimed",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Claimed (AED)"
+  },
+  {
+   "fieldname": "total_certified",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Certified (AED)"
+  },
+  {
+   "fieldname": "retention_amount",
+   "fieldtype": "Currency",
+   "label": "Retention Amount (AED)"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nUnder Review\nCertified\nPaid\nCancelled"
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Claim Breakdown"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Claim Items",
+   "options": "Subcontract Claim Item"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Subcontract Progress Claim",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-11 02:10:14.086321",
+ "modified_by": "Administrator",
+ "module": "ITS UI Redesign",
+ "name": "Subcontract Progress Claim",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

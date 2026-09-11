@@ -105,7 +105,7 @@ const showPassword = ref(false)
 const handleLogin = async () => {
   try {
     await authStore.login(usr.value, pwd.value)
-    router.push('/portal/dashboard')
+    router.push('/portal')
   } catch (err) {
     // Error state handled in store
   }

@@ -1,0 +1,111 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "RFI-.YYYY.-.#####",
+ "creation": "2026-09-11 02:10:14.522341",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "project",
+  "subject",
+  "category",
+  "date_raised",
+  "date_required",
+  "status",
+  "question",
+  "answer"
+ ],
+ "fields": [
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Project",
+   "options": "Project",
+   "reqd": 1
+  },
+  {
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Subject / Title",
+   "reqd": 1
+  },
+  {
+   "default": "Architectural",
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "label": "Category",
+   "options": "Architectural\nStructural\nMEP\nCivil\nCommercial"
+  },
+  {
+   "fieldname": "date_raised",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date Raised",
+   "reqd": 1
+  },
+  {
+   "fieldname": "date_required",
+   "fieldtype": "Date",
+   "label": "Response Required By"
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Open\nPending Response\nClosed"
+  },
+  {
+   "fieldname": "question",
+   "fieldtype": "Text",
+   "label": "RFI Question Details",
+   "reqd": 1
+  },
+  {
+   "fieldname": "answer",
+   "fieldtype": "Text",
+   "label": "Consultant / Engineer Response"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-11 02:10:14.522341",
+ "modified_by": "Administrator",
+ "module": "ITS UI Redesign",
+ "name": "Project RFI",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

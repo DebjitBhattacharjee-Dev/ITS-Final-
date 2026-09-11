@@ -5,6 +5,7 @@ import PortalAccess from '../views/auth/PortalAccess.vue'
 import Dashboard from '../views/Dashboard.vue'
 import WorkspaceView from '../views/WorkspaceView.vue'
 import ModuleDetailView from '../views/ModuleDetailView.vue'
+import DocumentDetailView from '../views/DocumentDetailView.vue'
 import NotFound from '../views/NotFound.vue'
 import Forbidden from '../views/Forbidden.vue'
 import SessionExpired from '../views/SessionExpired.vue'
@@ -32,37 +33,81 @@ const routes = [
     children: [
       {
         path: '',
-        redirect: '/portal/dashboard'
+        name: 'PortalHome',
+        redirect: '/portal/project-management'
       },
       {
         path: 'dashboard',
         name: 'Dashboard',
-        component: Dashboard
+        redirect: '/portal/project-management'
       },
+      // Workspace 01: Project Management
       {
-        path: 'projects',
-        name: 'ProjectsWorkspace',
+        path: 'project-management',
+        name: 'ProjectManagementWorkspace',
         component: WorkspaceView
       },
       {
-        path: 'projects/:module',
-        name: 'ProjectsModuleDetail',
+        path: 'workspaces/project-management',
+        redirect: '/portal/project-management'
+      },
+      {
+        path: 'project-management/:module',
+        name: 'ProjectManagementModuleDetail',
         component: ModuleDetailView
       },
       {
-        path: 'estimation',
-        name: 'EstimationWorkspace',
+        path: 'project-management/:module/:id',
+        name: 'ProjectManagementDocumentDetail',
+        component: DocumentDetailView
+      },
+      {
+        path: 'workspaces/project-management/:module',
+        redirect: to => `/portal/project-management/${to.params.module}`
+      },
+
+      // Workspace 02: Estimation and Cost Control
+      {
+        path: 'estimation-cost-control',
+        name: 'EstimationCostControlWorkspace',
         component: WorkspaceView
       },
       {
-        path: 'estimation/:module',
-        name: 'EstimationModuleDetail',
+        path: 'workspaces/estimation-cost-control',
+        redirect: '/portal/estimation-cost-control'
+      },
+      {
+        path: 'workspaces/estimation-and-cost-control',
+        redirect: '/portal/estimation-cost-control'
+      },
+      {
+        path: 'estimation-cost-control/:module',
+        name: 'EstimationCostControlModuleDetail',
         component: ModuleDetailView
       },
+      {
+        path: 'estimation-cost-control/:module/:id',
+        name: 'EstimationCostControlDocumentDetail',
+        component: DocumentDetailView
+      },
+      {
+        path: 'workspaces/estimation-cost-control/:module',
+        redirect: to => `/portal/estimation-cost-control/${to.params.module}`
+      },
+      {
+        path: 'workspaces/estimation-and-cost-control/:module',
+        redirect: to => `/portal/estimation-cost-control/${to.params.module}`
+      },
+
+      // Workspace 03: Planning
       {
         path: 'planning',
         name: 'PlanningWorkspace',
         component: WorkspaceView
+      },
+      {
+        path: 'workspaces/planning',
+        redirect: '/portal/planning'
       },
       {
         path: 'planning/:module',
@@ -70,75 +115,211 @@ const routes = [
         component: ModuleDetailView
       },
       {
-        path: 'procurement',
-        name: 'ProcurementWorkspace',
+        path: 'planning/:module/:id',
+        name: 'PlanningDocumentDetail',
+        component: DocumentDetailView
+      },
+      {
+        path: 'workspaces/planning/:module',
+        redirect: to => `/portal/planning/${to.params.module}`
+      },
+
+      // Workspace 04: Procurement and Subcontractors
+      {
+        path: 'procurement-subcontractors',
+        name: 'ProcurementSubcontractorsWorkspace',
         component: WorkspaceView
       },
       {
-        path: 'procurement/:module',
-        name: 'ProcurementModuleDetail',
+        path: 'workspaces/procurement-subcontractors',
+        redirect: '/portal/procurement-subcontractors'
+      },
+      {
+        path: 'workspaces/procurement-and-subcontractors',
+        redirect: '/portal/procurement-subcontractors'
+      },
+      {
+        path: 'procurement-subcontractors/:module',
+        name: 'ProcurementSubcontractorsModuleDetail',
         component: ModuleDetailView
       },
       {
-        path: 'inventory',
-        name: 'InventoryWorkspace',
+        path: 'procurement-subcontractors/:module/:id',
+        name: 'ProcurementSubcontractorsDocumentDetail',
+        component: DocumentDetailView
+      },
+      {
+        path: 'workspaces/procurement-subcontractors/:module',
+        redirect: to => `/portal/procurement-subcontractors/${to.params.module}`
+      },
+
+      // Workspace 05: Inventory Management
+      {
+        path: 'inventory-management',
+        name: 'InventoryManagementWorkspace',
         component: WorkspaceView
       },
       {
-        path: 'inventory/:module',
-        name: 'InventoryModuleDetail',
+        path: 'workspaces/inventory-management',
+        redirect: '/portal/inventory-management'
+      },
+      {
+        path: 'inventory-management/:module',
+        name: 'InventoryManagementModuleDetail',
         component: ModuleDetailView
       },
       {
-        path: 'hr',
-        name: 'HRWorkspace',
+        path: 'inventory-management/:module/:id',
+        name: 'InventoryManagementDocumentDetail',
+        component: DocumentDetailView
+      },
+      {
+        path: 'workspaces/inventory-management/:module',
+        redirect: to => `/portal/inventory-management/${to.params.module}`
+      },
+
+      // Workspace 06: HR and Manpower
+      {
+        path: 'hr-manpower',
+        name: 'HRManpowerWorkspace',
         component: WorkspaceView
       },
       {
-        path: 'hr/:module',
-        name: 'HRModuleDetail',
+        path: 'workspaces/hr-manpower',
+        redirect: '/portal/hr-manpower'
+      },
+      {
+        path: 'workspaces/hr-and-manpower',
+        redirect: '/portal/hr-manpower'
+      },
+      {
+        path: 'hr-manpower/:module',
+        name: 'HRManpowerModuleDetail',
         component: ModuleDetailView
       },
       {
-        path: 'fabrication',
-        name: 'FabricationWorkspace',
+        path: 'hr-manpower/:module/:id',
+        name: 'HRManpowerDocumentDetail',
+        component: DocumentDetailView
+      },
+      {
+        path: 'workspaces/hr-manpower/:module',
+        redirect: to => `/portal/hr-manpower/${to.params.module}`
+      },
+
+      // Workspace 07: Fabrication, Assets, and Equipment Management
+      {
+        path: 'fabrication-assets-equipment',
+        name: 'FabricationAssetsEquipmentWorkspace',
         component: WorkspaceView
       },
       {
-        path: 'fabrication/:module',
-        name: 'FabricationModuleDetail',
+        path: 'workspaces/fabrication-assets-equipment',
+        redirect: '/portal/fabrication-assets-equipment'
+      },
+      {
+        path: 'workspaces/fabrication-assets-and-equipment',
+        redirect: '/portal/fabrication-assets-equipment'
+      },
+      {
+        path: 'fabrication-assets-equipment/:module',
+        name: 'FabricationAssetsEquipmentModuleDetail',
         component: ModuleDetailView
       },
       {
-        path: 'billing',
-        name: 'BillingWorkspace',
+        path: 'fabrication-assets-equipment/:module/:id',
+        name: 'FabricationAssetsEquipmentDocumentDetail',
+        component: DocumentDetailView
+      },
+      {
+        path: 'workspaces/fabrication-assets-equipment/:module',
+        redirect: to => `/portal/fabrication-assets-equipment/${to.params.module}`
+      },
+
+      // Workspace 08: Project Progress and Billing
+      {
+        path: 'project-progress-billing',
+        name: 'ProjectProgressBillingWorkspace',
         component: WorkspaceView
       },
       {
-        path: 'billing/:module',
-        name: 'BillingModuleDetail',
+        path: 'workspaces/project-progress-billing',
+        redirect: '/portal/project-progress-billing'
+      },
+      {
+        path: 'workspaces/project-progress-and-billing',
+        redirect: '/portal/project-progress-billing'
+      },
+      {
+        path: 'project-progress-billing/:module',
+        name: 'ProjectProgressBillingModuleDetail',
         component: ModuleDetailView
       },
       {
-        path: 'accounting',
-        name: 'AccountingWorkspace',
+        path: 'project-progress-billing/:module/:id',
+        name: 'ProjectProgressBillingDocumentDetail',
+        component: DocumentDetailView
+      },
+      {
+        path: 'workspaces/project-progress-billing/:module',
+        redirect: to => `/portal/project-progress-billing/${to.params.module}`
+      },
+
+      // Workspace 09: Accounting and Finance
+      {
+        path: 'accounting-finance',
+        name: 'AccountingFinanceWorkspace',
         component: WorkspaceView
       },
       {
-        path: 'accounting/:module',
-        name: 'AccountingModuleDetail',
+        path: 'workspaces/accounting-finance',
+        redirect: '/portal/accounting-finance'
+      },
+      {
+        path: 'workspaces/accounting-and-finance',
+        redirect: '/portal/accounting-finance'
+      },
+      {
+        path: 'accounting-finance/:module',
+        name: 'AccountingFinanceModuleDetail',
         component: ModuleDetailView
       },
+      {
+        path: 'accounting-finance/:module/:id',
+        name: 'AccountingFinanceDocumentDetail',
+        component: DocumentDetailView
+      },
+      {
+        path: 'workspaces/accounting-finance/:module',
+        redirect: to => `/portal/accounting-finance/${to.params.module}`
+      },
+
+      // Workspace 10: Reporting
       {
         path: 'reporting',
         name: 'ReportingWorkspace',
         component: WorkspaceView
       },
       {
+        path: 'workspaces/reporting',
+        redirect: '/portal/reporting'
+      },
+      {
         path: 'reporting/:module',
         name: 'ReportingModuleDetail',
         component: ModuleDetailView
       },
+      {
+        path: 'reporting/:module/:id',
+        name: 'ReportingDocumentDetail',
+        component: DocumentDetailView
+      },
+      {
+        path: 'workspaces/reporting/:module',
+        redirect: to => `/portal/reporting/${to.params.module}`
+      },
+
+      // System Pages
       {
         path: '403',
         name: 'Forbidden',

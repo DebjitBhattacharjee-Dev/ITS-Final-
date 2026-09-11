@@ -1,9 +1,11 @@
 <template>
-  <div>
+  <div class="space-y-6">
     <PageHeader 
       :title="workspace.label" 
       :description="workspace.description"
     />
+
+    <!-- Navigation Menu Cards Grid ONLY (No top dashboard widgets) -->
     <WorkspaceGrid :sections="workspace.sections" />
   </div>
 </template>

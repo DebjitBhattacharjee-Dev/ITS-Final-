@@ -8,7 +8,7 @@
         window.csrf_token = "{{ csrf_token }}";
         window.frappe = window.frappe || {};
         window.frappe.csrf_token = "{{ csrf_token }}";
-        window.frappe.boot = {{ boot | tojson }};
+        window.frappe.boot = {{ boot_json | safe }};
     </script>
     <link rel="stylesheet" href="/assets/its_ui_redesign/portal/index.css">
 </head>

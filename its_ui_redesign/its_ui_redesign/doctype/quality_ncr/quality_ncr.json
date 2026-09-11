@@ -1,0 +1,111 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "NCR-.YYYY.-.#####",
+ "creation": "2026-09-11 02:10:14.878688",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "project",
+  "title",
+  "severity",
+  "location",
+  "date_issued",
+  "status",
+  "root_cause",
+  "corrective_action"
+ ],
+ "fields": [
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Project",
+   "options": "Project",
+   "reqd": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "NCR Description",
+   "reqd": 1
+  },
+  {
+   "default": "Minor",
+   "fieldname": "severity",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Severity",
+   "options": "Minor\nMajor\nCritical"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location / Zone"
+  },
+  {
+   "fieldname": "date_issued",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date Issued",
+   "reqd": 1
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Open\nUnder Rectification\nVerified & Closed"
+  },
+  {
+   "fieldname": "root_cause",
+   "fieldtype": "Text",
+   "label": "Root Cause Analysis"
+  },
+  {
+   "fieldname": "corrective_action",
+   "fieldtype": "Text",
+   "label": "Corrective & Preventive Action"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-11 02:10:14.878688",
+ "modified_by": "Administrator",
+ "module": "ITS UI Redesign",
+ "name": "Quality NCR",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

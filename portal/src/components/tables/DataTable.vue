@@ -6,6 +6,7 @@
         <Search class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
         <input 
           v-model="searchQuery"
+          @input="$emit('search', searchQuery)"
           type="text"
           :placeholder="searchPlaceholder"
           class="w-full bg-slate-950 border border-slate-800 rounded pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-600 transition-colors"
@@ -20,7 +21,7 @@
     <!-- Table Content -->
     <LoadingState v-if="loading" />
     <ErrorState v-else-if="error" :message="error" @retry="$emit('reload')" />
-    <EmptyState v-else-if="filteredRows.length === 0" />
+    <EmptyState v-else-if="displayRows.length === 0" />
 
     <div v-else class="overflow-x-auto">
       <table class="w-full text-left text-xs">
@@ -37,17 +38,19 @@
         </thead>
         <tbody class="divide-y divide-slate-800/50">
           <tr 
-            v-for="(row, idx) in paginatedRows" 
+            v-for="(row, idx) in displayRows" 
             :key="row.name || idx"
-            class="hover:bg-slate-800/40 transition-colors group"
+            @click="$emit('row-click', row)"
+            class="hover:bg-slate-800/60 cursor-pointer transition-colors group"
           >
             <td 
               v-for="col in columns" 
               :key="col.key"
-              class="py-2 px-3 text-slate-300 font-normal truncate max-w-xs"
+              class="py-2.5 px-3 text-slate-300 font-normal truncate max-w-xs"
             >
               <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
                 <StatusBadge v-if="col.key === 'status'" :status="row[col.key]" />
+                <span v-else-if="['name', 'title', 'id', 'customer_name', 'supplier_name', 'project_name'].includes(col.key)" class="font-mono text-blue-400 font-medium group-hover:underline">{{ row[col.key] }}</span>
                 <span v-else>{{ row[col.key] }}</span>
               </slot>
             </td>
@@ -57,21 +60,21 @@
     </div>
 
     <!-- Pagination -->
-    <div v-if="filteredRows.length > 0" class="p-2.5 border-t border-slate-800/80 bg-slate-950/50 flex items-center justify-between text-xs text-slate-400">
-      <span>Showing {{ paginationStart }} to {{ paginationEnd }} of {{ filteredRows.length }} records</span>
+    <div v-if="totalRecords > 0" class="p-2.5 border-t border-slate-800/80 bg-slate-950/50 flex items-center justify-between text-xs text-slate-400">
+      <span>Showing {{ paginationStart }} to {{ paginationEnd }} of {{ totalRecords }} records</span>
       <div class="flex items-center space-x-1">
         <button 
-          @click="page--" 
-          :disabled="page === 1"
-          class="px-2 py-1 bg-slate-800/60 hover:bg-slate-800 text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-800/60 rounded border border-slate-700/50 transition-colors"
+          @click="changePage(currentPage - 1)" 
+          :disabled="currentPage <= 1"
+          class="px-2.5 py-1 bg-slate-800/60 hover:bg-slate-800 text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-800/60 rounded border border-slate-700/50 transition-colors"
         >
           Previous
         </button>
-        <span class="px-2 font-mono text-slate-300">{{ page }} / {{ totalPages }}</span>
+        <span class="px-2 font-mono text-slate-300">{{ currentPage }} / {{ maxPage }}</span>
         <button 
-          @click="page++" 
-          :disabled="page >= totalPages"
-          class="px-2 py-1 bg-slate-800/60 hover:bg-slate-800 text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-800/60 rounded border border-slate-700/50 transition-colors"
+          @click="changePage(currentPage + 1)" 
+          :disabled="currentPage >= maxPage"
+          class="px-2.5 py-1 bg-slate-800/60 hover:bg-slate-800 text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-800/60 rounded border border-slate-700/50 transition-colors"
         >
           Next
         </button>
@@ -94,28 +97,35 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   error: { type: String, default: '' },
   searchPlaceholder: { type: String, default: 'Search records...' },
-  pageSize: { type: Number, default: 10 }
+  pageSize: { type: Number, default: 10 },
+  totalCount: { type: Number, default: 0 },
+  page: { type: Number, default: 1 },
+  serverSide: { type: Boolean, default: false }
 })
 
-defineEmits(['reload'])
+const emit = defineEmits(['reload', 'row-click', 'search', 'page-change'])
 
 const searchQuery = ref('')
-const page = ref(1)
 
-const filteredRows = computed(() => {
-  if (!searchQuery.value) return props.rows
+const displayRows = computed(() => {
+  if (props.serverSide) return props.rows
+  if (!searchQuery.value) {
+    const start = (props.page - 1) * props.pageSize
+    return props.rows.slice(start, start + props.pageSize)
+  }
   const q = searchQuery.value.toLowerCase()
-  return props.rows.filter(r => 
-    Object.values(r).some(val => String(val).toLowerCase().includes(q))
-  )
+  return props.rows.filter(r => Object.values(r).some(val => String(val).toLowerCase().includes(q)))
 })
 
-const totalPages = computed(() => Math.ceil(filteredRows.value.length / props.pageSize) || 1)
-const paginationStart = computed(() => ((page.value - 1) * props.pageSize) + 1)
-const paginationEnd = computed(() => Math.min(page.value * props.pageSize, filteredRows.value.length))
+const totalRecords = computed(() => props.serverSide ? props.totalCount : (searchQuery.value ? displayRows.value.length : props.rows.length))
+const currentPage = computed(() => props.page)
+const maxPage = computed(() => Math.ceil(totalRecords.value / props.pageSize) || 1)
 
-const paginatedRows = computed(() => {
-  const start = (page.value - 1) * props.pageSize
-  return filteredRows.value.slice(start, start + props.pageSize)
-})
+const paginationStart = computed(() => totalRecords.value === 0 ? 0 : ((currentPage.value - 1) * props.pageSize) + 1)
+const paginationEnd = computed(() => Math.min(currentPage.value * props.pageSize, totalRecords.value))
+
+const changePage = (newPage) => {
+  if (newPage < 1 || newPage > maxPage.value) return
+  emit('page-change', newPage)
+}
 </script>
