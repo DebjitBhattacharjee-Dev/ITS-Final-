@@ -152,9 +152,18 @@ export async function getDocumentPdf(doctype, name, printFormat = null, letterhe
   return callApi("its_ui_redesign.api.common.get_document_pdf", { doctype, name, print_format: printFormat, letterhead })
 }
 
+export function getDownloadDocumentPdfUrl(doctype, name, printFormat = null, letterhead = null) {
+  let url = `/api/method/its_ui_redesign.api.common.get_document_pdf?doctype=${encodeURIComponent(doctype)}&name=${encodeURIComponent(name)}&view=1`
+  if (printFormat) url += `&print_format=${encodeURIComponent(printFormat)}`
+  if (letterhead) url += `&letterhead=${encodeURIComponent(letterhead)}`
+  return url
+}
 
-export async function getContextualCreateOptions(doctype) {
-  return callApi("its_ui_redesign.api.common.get_contextual_create_options", { doctype })
+
+
+
+export async function getContextualCreateOptions(doctype, name = null) {
+  return callApi("its_ui_redesign.api.common.get_contextual_create_options", { doctype, name })
 }
 
 export async function getCreateTargetPayload(sourceDocType, sourceName, targetDocType) {

@@ -9,6 +9,10 @@ import DocumentDetailView from '../views/DocumentDetailView.vue'
 import NotFound from '../views/NotFound.vue'
 import Forbidden from '../views/Forbidden.vue'
 import SessionExpired from '../views/SessionExpired.vue'
+import UserAdminView from '../views/admin/UserAdminView.vue'
+import UserDetailView from '../views/admin/UserDetailView.vue'
+import RoleAdminView from '../views/admin/RoleAdminView.vue'
+import RolePermissionManagerView from '../views/admin/RolePermissionManagerView.vue'
 import { setupGuards } from './guards'
 
 const routes = [
@@ -317,6 +321,28 @@ const routes = [
       {
         path: 'workspaces/reporting/:module',
         redirect: to => `/portal/reporting/${to.params.module}`
+      },
+
+      // Administration Module Routes
+      {
+        path: 'administration/users',
+        name: 'UserAdmin',
+        component: UserAdminView
+      },
+      {
+        path: 'administration/users/:id',
+        name: 'UserDetailAdmin',
+        component: UserDetailView
+      },
+      {
+        path: 'administration/roles',
+        name: 'RoleAdmin',
+        component: RoleAdminView
+      },
+      {
+        path: 'administration/role-permissions',
+        name: 'RolePermissionManager',
+        component: RolePermissionManagerView
       },
 
       // System Pages

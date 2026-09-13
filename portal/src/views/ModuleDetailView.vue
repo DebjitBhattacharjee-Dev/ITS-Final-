@@ -173,7 +173,8 @@ import {
   submitDocument, 
   cancelDocument, 
   amendDocument, 
-  applyWorkflowAction 
+  applyWorkflowAction,
+  getDownloadDocumentPdfUrl
 } from '../services/api'
 import { workspaces, openDocument } from '../config/navigation'
 import { useNotificationStore } from '../stores/notification'
@@ -405,27 +406,12 @@ const handleRecordSaved = (savedDoc) => {
   loadData()
 }
 
-const handlePrintPdf = async () => {
+const handlePrintPdf = () => {
   if (!selectedDoc.value) return
-  try {
-    const res = await getDocumentPdf(pageInfo.value.docType, selectedDoc.value.name)
-    if (res && res.success && res.data?.pdf_base64) {
-      const byteCharacters = atob(res.data.pdf_base64)
-      const byteNumbers = new Array(byteCharacters.length)
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i)
-      }
-      const byteArray = new Uint8Array(byteNumbers)
-      const blob = new Blob([byteArray], { type: 'application/pdf' })
-      const blobUrl = URL.createObjectURL(blob)
-      window.open(blobUrl, '_blank')
-    } else {
-      notificationStore.showError('Print Error', extractFrappeErrorMessage(res, null))
-    }
-  } catch (err) {
-    notificationStore.showError('Print Error', extractFrappeErrorMessage(null, err))
-  }
+  const url = getDownloadDocumentPdfUrl(pageInfo.value.docType, selectedDoc.value.name)
+  window.open(url, '_blank')
 }
+
 
 const handleSubmitDoc = async () => {
   try {

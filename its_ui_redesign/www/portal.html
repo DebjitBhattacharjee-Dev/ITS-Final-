@@ -4,16 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title or "ITS Project Operations" }}</title>
+    <link rel="icon" type="image/png" href="/assets/its_ui_redesign/images/its_logo.png">
     <script>
         window.csrf_token = "{{ csrf_token }}";
         window.frappe = window.frappe || {};
         window.frappe.csrf_token = "{{ csrf_token }}";
         window.frappe.boot = {{ boot_json | safe }};
     </script>
-    <link rel="stylesheet" href="/assets/its_ui_redesign/portal/index.css">
+    <link rel="stylesheet" href="/assets/its_ui_redesign/portal/index.css?v={{ ver }}">
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased font-sans selection:bg-blue-600 selection:text-white">
     <div id="app"></div>
-    <script type="module" src="/assets/its_ui_redesign/portal/index.js"></script>
+    <script type="module" src="/assets/its_ui_redesign/portal/index.js?v={{ ver }}"></script>
 </body>
 </html>

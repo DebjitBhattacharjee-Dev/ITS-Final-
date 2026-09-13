@@ -493,6 +493,9 @@ def search_link_options(doctype, txt=None, filters=None, page_length=20):
 
 @frappe.whitelist()
 def insert_missing_custom_doctypes():
+    if "System Manager" not in frappe.get_roles(frappe.session.user):
+        frappe.throw(_("Only System Manager can execute administrative setup."), frappe.PermissionError)
+
     import os, json
     roles = [
         "Portal Administrator", "Project Manager", "Project Engineer", "Planning Engineer",
@@ -529,6 +532,9 @@ def insert_missing_custom_doctypes():
 
 @frappe.whitelist()
 def reload_custom_doctypes():
+    if "System Manager" not in frappe.get_roles(frappe.session.user):
+        frappe.throw(_("Only System Manager can execute administrative setup."), frappe.PermissionError)
+
     import os, json
     app_path = frappe.get_app_path("its_ui_redesign", "doctype")
     for folder in os.listdir(app_path):
@@ -552,6 +558,9 @@ def reload_custom_doctypes():
 
 @frappe.whitelist()
 def audit_navigation_doctypes():
+    if "System Manager" not in frappe.get_roles(frappe.session.user):
+        frappe.throw(_("Only System Manager can execute administrative audit."), frappe.PermissionError)
+
     import re
     nav_file = "/home/frappe/frappe-bench/apps/its_ui_redesign/portal/src/config/navigation.js"
     with open(nav_file, "r") as f:
@@ -773,11 +782,145 @@ def get_tree_nodes(doctype, parent_field=None, parent_val=None):
 @frappe.whitelist()
 
 @frappe.whitelist()
+def get_permission_aware_count(doctype, filters=None):
+    """
+    Returns permission-aware count of records for the given DocType.
+    Respects DocType Read Permission, User Permissions, and Permission Query Conditions.
+    Returns 0 if user lacks read permission or DocType does not exist.
+    """
+    if not frappe.db.exists("DocType", doctype):
+        return 0
+    if not frappe.has_permission(doctype, "read"):
+        return 0
+    try:
+        items = frappe.get_list(
+            doctype,
+            filters=filters or {},
+            fields=["name"],
+            limit_page_length=0,
+            ignore_permissions=False
+        )
+        return len(items)
+    except Exception as e:
+        frappe.log_error(f"Dashboard Count Error for {doctype}: {str(e)}")
+        return 0
+
+def get_permission_aware_sum(doctype, fieldname, filters=None):
+    """
+    Returns permission-aware sum of a numeric field for the given DocType.
+    Respects DocType Read Permission, User Permissions, and Permission Query Conditions.
+    Returns 0.0 if user lacks read permission or DocType does not exist.
+    """
+    if not frappe.db.exists("DocType", doctype):
+        return 0.0
+    if not frappe.has_permission(doctype, "read"):
+        return 0.0
+    try:
+        items = frappe.get_list(
+            doctype,
+            filters=filters or {},
+            fields=[fieldname],
+            limit_page_length=0,
+            ignore_permissions=False
+        )
+        return sum(float(d.get(fieldname) or 0.0) for d in items if d.get(fieldname) is not None)
+    except Exception as e:
+        frappe.log_error(f"Dashboard Sum Error for {doctype}.{fieldname}: {str(e)}")
+        return 0.0
+
+def get_permission_aware_status_distribution(doctype, status_field="status", filters=None, limit=None):
+    """
+    Returns permission-aware breakdown of record counts by status/field.
+    Format: [{"status": "Open", "count": 10}, ...]
+    """
+    if not frappe.db.exists("DocType", doctype):
+        return []
+    if not frappe.has_permission(doctype, "read"):
+        return []
+    try:
+        items = frappe.get_list(
+            doctype,
+            filters=filters or {},
+            fields=[status_field],
+            limit_page_length=0,
+            ignore_permissions=False
+        )
+        counts = {}
+        for d in items:
+            val = d.get(status_field)
+            if val is not None and str(val).strip():
+                counts[val] = counts.get(val, 0) + 1
+        
+        result = [{"status": str(k), "count": v} for k, v in counts.items()]
+        if limit:
+            result = sorted(result, key=lambda x: x["count"], reverse=True)[:limit]
+        return result
+    except Exception as e:
+        frappe.log_error(f"Dashboard Distribution Error for {doctype}.{status_field}: {str(e)}")
+        return []
+
+def get_permission_aware_field_distribution(doctype, group_field, sum_field, filters=None, limit=5):
+    """
+    Returns permission-aware breakdown of summed field grouped by group_field.
+    Format: [{"status": "Warehouse A", "count": 1500.0}, ...]
+    """
+    if not frappe.db.exists("DocType", doctype):
+        return []
+    if not frappe.has_permission(doctype, "read"):
+        return []
+    try:
+        items = frappe.get_list(
+            doctype,
+            filters=filters or {},
+            fields=[group_field, sum_field],
+            limit_page_length=0,
+            ignore_permissions=False
+        )
+        totals = {}
+        for d in items:
+            g_val = d.get(group_field)
+            s_val = float(d.get(sum_field) or 0.0)
+            if g_val and s_val > 0:
+                totals[g_val] = totals.get(g_val, 0.0) + s_val
+        
+        result = [{"status": str(k), "count": v} for k, v in totals.items()]
+        result = sorted(result, key=lambda x: x["count"], reverse=True)[:limit]
+        return result
+    except Exception as e:
+        frappe.log_error(f"Dashboard Field Distribution Error for {doctype}: {str(e)}")
+        return []
+
+def get_permission_aware_recent(doctype, fields, order_by="modified desc", limit=6, filters=None):
+    """
+    Returns permission-aware list of recent documents.
+    """
+    if not frappe.db.exists("DocType", doctype):
+        return []
+    if not frappe.has_permission(doctype, "read"):
+        return []
+    try:
+        meta = frappe.get_meta(doctype)
+        clean_fields = get_valid_fields_for_doctype(meta, fields)
+        return frappe.get_list(
+            doctype,
+            filters=filters or {},
+            fields=clean_fields,
+            order_by=order_by,
+            start=0,
+            page_length=limit,
+            ignore_permissions=False
+        )
+    except Exception as e:
+        frappe.log_error(f"Dashboard Recent Error for {doctype}: {str(e)}")
+        return []
+
+@frappe.whitelist()
 def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=None, to_date=None):
     """
     Returns live ERPNext/Frappe aggregated KPIs, status distributions,
     trend charts, and record lists for the specified workspace.
-    Zero mock numbers. All values are calculated from real backend records.
+    Zero mock numbers. All values are calculated from real backend records
+    with strict Frappe permission enforcement (Role & User Permissions).
     """
     if frappe.session.user == "Guest":
         frappe.throw(_("Unauthenticated"), frappe.AuthenticationError)
@@ -786,15 +929,15 @@ def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=
 
     # 1. Project Management
     if ws == "01-project-management" or "project" in ws:
-        active_projects = frappe.db.count("Project", filters={"status": ["in", ["Open", "In Progress", "Started"]]}) or 0
-        completed_projects = frappe.db.count("Project", filters={"status": ["in", ["Completed", "Closed"]]}) or 0
-        open_rfis = frappe.db.count("Project RFI", filters={"status": ["in", ["Open", "Pending Response"]]}) if frappe.db.exists("DocType", "Project RFI") else 0
-        open_issues = frappe.db.count("Issue", filters={"status": ["in", ["Open", "Replied"]]}) or 0
-        open_variations = frappe.db.count("Project Variation", filters={"status": ["in", ["Draft", "Pending Review"]]}) if frappe.db.exists("DocType", "Project Variation") else 0
-        open_ncrs = frappe.db.count("Quality NCR", filters={"status": ["in", ["Open", "Under Rectification"]]}) if frappe.db.exists("DocType", "Quality NCR") else 0
+        active_projects = get_permission_aware_count("Project", {"status": ["in", ["Open", "In Progress", "Started"]]})
+        completed_projects = get_permission_aware_count("Project", {"status": ["in", ["Completed", "Closed"]]})
+        open_rfis = get_permission_aware_count("Project RFI", {"status": ["in", ["Open", "Pending Response"]]})
+        open_issues = get_permission_aware_count("Issue", {"status": ["in", ["Open", "Replied"]]})
+        open_variations = get_permission_aware_count("Project Variation", {"status": ["in", ["Draft", "Pending Review"]]})
+        open_ncrs = get_permission_aware_count("Quality NCR", {"status": ["in", ["Open", "Under Rectification"]]})
         
-        status_counts = frappe.db.sql("SELECT status, COUNT(name) as count FROM `tabProject` GROUP BY status", as_dict=True)
-        recent_projects = frappe.get_all("Project", fields=["name", "project_name", "status", "percent_complete", "estimated_costing"], order_by="modified desc", limit=6)
+        status_counts = get_permission_aware_status_distribution("Project", "status")
+        recent_projects = get_permission_aware_recent("Project", ["name", "project_name", "status", "percent_complete", "estimated_costing"], limit=6)
 
         return {
             "kpis": [
@@ -814,13 +957,10 @@ def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=
 
     # 2. Estimation & Cost Control
     elif ws == "02-estimation" or "estimation" in ws:
-        active_estimates = frappe.db.count("Project Variation", filters={"status": "Draft"}) if frappe.db.exists("DocType", "Project Variation") else 0
-        sales_orders_val = frappe.db.sql("SELECT SUM(grand_total) FROM `tabSales Order` WHERE docstatus=1")[0][0] or 0.0
-        actual_cost = frappe.db.sql("SELECT SUM(grand_total) FROM `tabPurchase Invoice` WHERE docstatus=1")[0][0] or 0.0
-        var_cost = 0.0
-        if frappe.db.exists("DocType", "Project Variation"):
-            var_res = frappe.db.sql("SELECT SUM(cost_impact) FROM `tabProject Variation` WHERE status='Approved'")[0][0]
-            var_cost = float(var_res or 0)
+        active_estimates = get_permission_aware_count("Project Variation", {"status": "Draft"})
+        sales_orders_val = get_permission_aware_sum("Sales Order", "grand_total", {"docstatus": 1})
+        actual_cost = get_permission_aware_sum("Purchase Invoice", "grand_total", {"docstatus": 1})
+        var_cost = get_permission_aware_sum("Project Variation", "cost_impact", {"status": "Approved"})
 
         cost_breakdown = [
             {"label": "Contract Sales Value", "count": float(sales_orders_val)},
@@ -828,7 +968,7 @@ def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=
             {"label": "Approved Variations", "count": float(var_cost)}
         ]
 
-        recent_variations = frappe.get_all("Project Variation", fields=["name", "title", "project", "cost_impact", "status"], order_by="modified desc", limit=6) if frappe.db.exists("DocType", "Project Variation") else []
+        recent_variations = get_permission_aware_recent("Project Variation", ["name", "title", "project", "cost_impact", "status"], limit=6)
 
         return {
             "kpis": [
@@ -846,13 +986,13 @@ def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=
 
     # 3. Planning
     elif ws == "03-planning" or "planning" in ws:
-        total_tasks = frappe.db.count("Task") or 0
-        open_tasks = frappe.db.count("Task", filters={"status": ["in", ["Open", "Working"]]}) or 0
-        completed_tasks = frappe.db.count("Task", filters={"status": "Completed"}) or 0
-        overdue_tasks = frappe.db.count("Task", filters={"status": "Overdue"}) or 0
+        total_tasks = get_permission_aware_count("Task")
+        open_tasks = get_permission_aware_count("Task", {"status": ["in", ["Open", "Working"]]})
+        completed_tasks = get_permission_aware_count("Task", {"status": "Completed"})
+        overdue_tasks = get_permission_aware_count("Task", {"status": "Overdue"})
 
-        task_status = frappe.db.sql("SELECT status, COUNT(name) as count FROM `tabTask` GROUP BY status", as_dict=True)
-        recent_tasks = frappe.get_all("Task", fields=["name", "subject", "project", "status", "priority"], order_by="modified desc", limit=6)
+        task_status = get_permission_aware_status_distribution("Task", "status")
+        recent_tasks = get_permission_aware_recent("Task", ["name", "subject", "project", "status", "priority"], limit=6)
 
         return {
             "kpis": [
@@ -870,13 +1010,13 @@ def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=
 
     # 4. Procurement & Subcontractors
     elif ws == "04-procurement" or "procurement" in ws:
-        total_pos = frappe.db.count("Purchase Order") or 0
-        open_pos = frappe.db.count("Purchase Order", filters={"status": ["in", ["To Receive and Bill", "Draft"]]}) or 0
-        po_val = frappe.db.sql("SELECT SUM(grand_total) FROM `tabPurchase Order` WHERE docstatus=1")[0][0] or 0.0
-        subcontract_claims_val = frappe.db.sql("SELECT SUM(total_claimed) FROM `tabSubcontract Progress Claim` WHERE docstatus=1")[0][0] if frappe.db.exists("DocType", "Subcontract Progress Claim") else 0.0
+        total_pos = get_permission_aware_count("Purchase Order")
+        open_pos = get_permission_aware_count("Purchase Order", {"status": ["in", ["To Receive and Bill", "Draft"]]})
+        po_val = get_permission_aware_sum("Purchase Order", "grand_total", {"docstatus": 1})
+        subcontract_claims_val = get_permission_aware_sum("Subcontract Progress Claim", "total_claimed", {"docstatus": 1})
 
-        po_status = frappe.db.sql("SELECT status, COUNT(name) as count FROM `tabPurchase Order` GROUP BY status", as_dict=True)
-        recent_pos = frappe.get_all("Purchase Order", fields=["name", "supplier", "grand_total", "status", "transaction_date"], order_by="modified desc", limit=6)
+        po_status = get_permission_aware_status_distribution("Purchase Order", "status")
+        recent_pos = get_permission_aware_recent("Purchase Order", ["name", "supplier", "grand_total", "status", "transaction_date"], limit=6)
 
         return {
             "kpis": [
@@ -894,13 +1034,13 @@ def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=
 
     # 5. Inventory Management
     elif ws == "05-inventory" or "inventory" in ws:
-        total_items = frappe.db.count("Item") or 0
-        total_warehouses = frappe.db.count("Warehouse") or 0
-        stock_val_res = frappe.db.sql("SELECT SUM(stock_value) FROM `tabBin`")[0][0] or 0.0
-        stock_receipts = frappe.db.count("Purchase Receipt", filters={"docstatus": 1}) or 0
+        total_items = get_permission_aware_count("Item")
+        total_warehouses = get_permission_aware_count("Warehouse")
+        stock_val_res = get_permission_aware_sum("Bin", "stock_value")
+        stock_receipts = get_permission_aware_count("Purchase Receipt", {"docstatus": 1})
 
-        warehouse_val = frappe.db.sql("SELECT warehouse as status, SUM(stock_value) as count FROM `tabBin` WHERE stock_value > 0 GROUP BY warehouse LIMIT 5", as_dict=True)
-        recent_receipts = frappe.get_all("Purchase Receipt", fields=["name", "supplier", "grand_total", "status", "posting_date"], order_by="modified desc", limit=6)
+        warehouse_val = get_permission_aware_field_distribution("Bin", "warehouse", "stock_value", filters={"stock_value": [">", 0]}, limit=5)
+        recent_receipts = get_permission_aware_recent("Purchase Receipt", ["name", "supplier", "grand_total", "status", "posting_date"], limit=6)
 
         return {
             "kpis": [
@@ -918,13 +1058,13 @@ def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=
 
     # 6. HR & Manpower
     elif ws == "06-hr-manpower" or "hr" in ws or "manpower" in ws:
-        total_emp = frappe.db.count("Employee", filters={"status": "Active"}) or 0
-        attendance_today = frappe.db.count("Attendance", filters={"attendance_date": frappe.utils.today(), "status": "Present"}) or 0
-        open_leaves = frappe.db.count("Leave Application", filters={"status": "Open"}) or 0
-        total_timesheets = frappe.db.count("Timesheet", filters={"docstatus": 1}) or 0
+        total_emp = get_permission_aware_count("Employee", {"status": "Active"})
+        attendance_today = get_permission_aware_count("Attendance", {"attendance_date": frappe.utils.today(), "status": "Present"})
+        open_leaves = get_permission_aware_count("Leave Application", {"status": "Open"})
+        total_timesheets = get_permission_aware_count("Timesheet", {"docstatus": 1})
 
-        dept_dist = frappe.db.sql("SELECT department as status, COUNT(name) as count FROM `tabEmployee` WHERE status='Active' AND department IS NOT NULL GROUP BY department LIMIT 5", as_dict=True)
-        recent_employees = frappe.get_all("Employee", fields=["name", "employee_name", "designation", "department", "status"], order_by="modified desc", limit=6)
+        dept_dist = get_permission_aware_status_distribution("Employee", "department", filters={"status": "Active"}, limit=5)
+        recent_employees = get_permission_aware_recent("Employee", ["name", "employee_name", "designation", "department", "status"], limit=6)
 
         return {
             "kpis": [
@@ -942,13 +1082,13 @@ def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=
 
     # 7. Fabrication & Equipment
     elif ws == "07-fabrication" or "fabrication" in ws or "equipment" in ws:
-        work_orders = frappe.db.count("Work Order") or 0
-        in_process_wo = frappe.db.count("Work Order", filters={"status": "In Process"}) or 0
-        total_assets = frappe.db.count("Asset") or 0
-        in_use_assets = frappe.db.count("Asset", filters={"status": "Submitted"}) or 0
+        work_orders = get_permission_aware_count("Work Order")
+        in_process_wo = get_permission_aware_count("Work Order", {"status": "In Process"})
+        total_assets = get_permission_aware_count("Asset")
+        in_use_assets = get_permission_aware_count("Asset", {"status": "Submitted"})
 
-        wo_status = frappe.db.sql("SELECT status, COUNT(name) as count FROM `tabWork Order` GROUP BY status", as_dict=True)
-        recent_work_orders = frappe.get_all("Work Order", fields=["name", "production_item", "qty", "status", "planned_start_date"], order_by="modified desc", limit=6)
+        wo_status = get_permission_aware_status_distribution("Work Order", "status")
+        recent_work_orders = get_permission_aware_recent("Work Order", ["name", "production_item", "qty", "status", "planned_start_date"], limit=6)
 
         return {
             "kpis": [
@@ -966,13 +1106,13 @@ def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=
 
     # 8. Project Progress & Billing
     elif ws == "08-billing" or "billing" in ws:
-        total_invoices = frappe.db.count("Sales Invoice") or 0
-        total_billed_res = frappe.db.sql("SELECT SUM(grand_total) FROM `tabSales Invoice` WHERE docstatus=1")[0][0] or 0.0
-        outstanding_res = frappe.db.sql("SELECT SUM(outstanding_amount) FROM `tabSales Invoice` WHERE docstatus=1 AND outstanding_amount > 0")[0][0] or 0.0
-        site_measurements = frappe.db.count("Site Measurement", filters={"docstatus": 1}) if frappe.db.exists("DocType", "Site Measurement") else 0
+        total_invoices = get_permission_aware_count("Sales Invoice")
+        total_billed_res = get_permission_aware_sum("Sales Invoice", "grand_total", {"docstatus": 1})
+        outstanding_res = get_permission_aware_sum("Sales Invoice", "outstanding_amount", {"docstatus": 1, "outstanding_amount": [">", 0]})
+        site_measurements = get_permission_aware_count("Site Measurement", {"docstatus": 1})
 
-        inv_status = frappe.db.sql("SELECT status, COUNT(name) as count FROM `tabSales Invoice` GROUP BY status", as_dict=True)
-        recent_invoices = frappe.get_all("Sales Invoice", fields=["name", "customer", "grand_total", "outstanding_amount", "status"], order_by="modified desc", limit=6)
+        inv_status = get_permission_aware_status_distribution("Sales Invoice", "status")
+        recent_invoices = get_permission_aware_recent("Sales Invoice", ["name", "customer", "grand_total", "outstanding_amount", "status"], limit=6)
 
         return {
             "kpis": [
@@ -990,10 +1130,10 @@ def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=
 
     # 9. Accounting & Finance
     elif ws == "09-accounting" or "accounting" in ws or "finance" in ws:
-        tot_rev = frappe.db.sql("SELECT SUM(grand_total) FROM `tabSales Invoice` WHERE docstatus=1")[0][0] or 0.0
-        tot_exp = frappe.db.sql("SELECT SUM(grand_total) FROM `tabPurchase Invoice` WHERE docstatus=1")[0][0] or 0.0
+        tot_rev = get_permission_aware_sum("Sales Invoice", "grand_total", {"docstatus": 1})
+        tot_exp = get_permission_aware_sum("Purchase Invoice", "grand_total", {"docstatus": 1})
         net_margin = float(tot_rev) - float(tot_exp)
-        payments_rec = frappe.db.sql("SELECT SUM(paid_amount) FROM `tabPayment Entry` WHERE docstatus=1 AND payment_type='Receive'")[0][0] or 0.0
+        payments_rec = get_permission_aware_sum("Payment Entry", "paid_amount", {"docstatus": 1, "payment_type": "Receive"})
 
         fin_overview = [
             {"label": "Total Revenue", "count": float(tot_rev)},
@@ -1001,7 +1141,7 @@ def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=
             {"label": "Net Profit Margin", "count": float(net_margin)}
         ]
 
-        recent_payments = frappe.get_all("Payment Entry", fields=["name", "party", "payment_type", "paid_amount", "posting_date"], order_by="modified desc", limit=6)
+        recent_payments = get_permission_aware_recent("Payment Entry", ["name", "party", "payment_type", "paid_amount", "posting_date"], limit=6)
 
         return {
             "kpis": [
@@ -1019,17 +1159,17 @@ def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=
 
     # 10. Reporting / Default Executive Overview
     else:
-        active_projects = frappe.db.count("Project", filters={"status": ["in", ["Open", "In Progress", "Started"]]}) or 0
-        total_sales = frappe.db.sql("SELECT SUM(grand_total) FROM `tabSales Invoice` WHERE docstatus=1")[0][0] or 0.0
-        total_purchases = frappe.db.sql("SELECT SUM(grand_total) FROM `tabPurchase Order` WHERE docstatus=1")[0][0] or 0.0
-        active_warranties = frappe.db.count("Warranty Register", filters={"status": "Active"}) if frappe.db.exists("DocType", "Warranty Register") else 0
+        active_projects = get_permission_aware_count("Project", {"status": ["in", ["Open", "In Progress", "Started"]]})
+        total_sales = get_permission_aware_sum("Sales Invoice", "grand_total", {"docstatus": 1})
+        total_purchases = get_permission_aware_sum("Purchase Order", "grand_total", {"docstatus": 1})
+        active_warranties = get_permission_aware_count("Warranty Register", {"status": "Active"})
 
         exec_overview = [
             {"label": "Sales Revenue", "count": float(total_sales)},
             {"label": "Purchase Commitments", "count": float(total_purchases)}
         ]
 
-        recent_activity = frappe.get_all("Project", fields=["name", "project_name", "status", "percent_complete"], order_by="modified desc", limit=6)
+        recent_activity = get_permission_aware_recent("Project", ["name", "project_name", "status", "percent_complete"], limit=6)
 
         return {
             "kpis": [
@@ -1056,9 +1196,14 @@ def get_related_documents(doctype, name):
     """
     Retrieves all related records across the 10 ITS workspaces for traceability.
     Each query is isolated so missing columns in standard DocTypes never break other linked records.
+    All record retrievals enforce Frappe session permissions strictly.
     """
     if not doctype or not name:
         return success_response([])
+    if frappe.session.user == "Guest":
+        return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
+    if not frappe.has_permission(doctype, "read", doc=name):
+        return error_response("PERMISSION_DENIED", _("No read permission for {0} {1}").format(doctype, name), 403)
 
     related = []
 
@@ -1073,8 +1218,8 @@ def get_related_documents(doctype, name):
 
         # 1. Finance Commitment
         try:
-            if frappe.db.exists("DocType", "Finance Commitment"):
-                fc_list = frappe.get_all("Finance Commitment", filters=proj_filter, fields=["name", "approval_status", "expected_payable"])
+            if frappe.db.exists("DocType", "Finance Commitment") and frappe.has_permission("Finance Commitment", "read"):
+                fc_list = frappe.get_list("Finance Commitment", filters=proj_filter, fields=["name", "approval_status", "expected_payable"], ignore_permissions=False)
                 for fc in fc_list:
                     related.append({"doctype": "Finance Commitment", "name": fc.name, "relation": "Finance Commitment", "details": f"Status: {fc.approval_status}"})
         except Exception as e:
@@ -1082,8 +1227,8 @@ def get_related_documents(doctype, name):
 
         # 2. Purchase Order
         try:
-            if frappe.db.has_column("Purchase Order", "project"):
-                po_list = frappe.get_all("Purchase Order", filters=proj_filter, fields=["name", "supplier", "grand_total", "status"])
+            if frappe.db.has_column("Purchase Order", "project") and frappe.has_permission("Purchase Order", "read"):
+                po_list = frappe.get_list("Purchase Order", filters=proj_filter, fields=["name", "supplier", "grand_total", "status"], ignore_permissions=False)
                 for po in po_list:
                     related.append({"doctype": "Purchase Order", "name": po.name, "relation": "Supplier PO", "details": f"{po.supplier} - AED {po.grand_total}"})
         except Exception as e:
@@ -1091,8 +1236,8 @@ def get_related_documents(doctype, name):
 
         # 3. PSS Skid Tracker
         try:
-            if frappe.db.exists("DocType", "PSS Skid Tracker"):
-                pss_list = frappe.get_all("PSS Skid Tracker", filters=proj_filter, fields=["name", "pss_family", "delivery_status", "commissioning_status"])
+            if frappe.db.exists("DocType", "PSS Skid Tracker") and frappe.has_permission("PSS Skid Tracker", "read"):
+                pss_list = frappe.get_list("PSS Skid Tracker", filters=proj_filter, fields=["name", "pss_family", "delivery_status", "commissioning_status"], ignore_permissions=False)
                 for pss in pss_list:
                     related.append({"doctype": "PSS Skid Tracker", "name": pss.name, "relation": "PSS Skid", "details": f"{pss.pss_family} ({pss.commissioning_status})"})
         except Exception as e:
@@ -1100,8 +1245,8 @@ def get_related_documents(doctype, name):
 
         # 4. Invoice Dossier
         try:
-            if frappe.db.exists("DocType", "Invoice Dossier"):
-                dossier_list = frappe.get_all("Invoice Dossier", filters=proj_filter, fields=["name", "dossier_status", "net_invoice_amount"])
+            if frappe.db.exists("DocType", "Invoice Dossier") and frappe.has_permission("Invoice Dossier", "read"):
+                dossier_list = frappe.get_list("Invoice Dossier", filters=proj_filter, fields=["name", "dossier_status", "net_invoice_amount"], ignore_permissions=False)
                 for d in dossier_list:
                     related.append({"doctype": "Invoice Dossier", "name": d.name, "relation": "Invoice Dossier", "details": f"{d.dossier_status} - AED {d.net_invoice_amount}"})
         except Exception as e:
@@ -1109,8 +1254,8 @@ def get_related_documents(doctype, name):
 
         # 5. Quotation
         try:
-            if frappe.db.has_column("Quotation", "project"):
-                q_list = frappe.get_all("Quotation", filters=proj_filter, fields=["name", "grand_total"])
+            if frappe.db.has_column("Quotation", "project") and frappe.has_permission("Quotation", "read"):
+                q_list = frappe.get_list("Quotation", filters=proj_filter, fields=["name", "grand_total"], ignore_permissions=False)
                 for q in q_list:
                     related.append({"doctype": "Quotation", "name": q.name, "relation": "Linked Quotation", "details": f"AED {q.grand_total}"})
         except Exception as e:
@@ -1118,8 +1263,8 @@ def get_related_documents(doctype, name):
 
         # 6. Sales Invoice
         try:
-            if frappe.db.has_column("Sales Invoice", "project"):
-                inv_list = frappe.get_all("Sales Invoice", filters=proj_filter, fields=["name", "grand_total", "status"])
+            if frappe.db.has_column("Sales Invoice", "project") and frappe.has_permission("Sales Invoice", "read"):
+                inv_list = frappe.get_list("Sales Invoice", filters=proj_filter, fields=["name", "grand_total", "status"], ignore_permissions=False)
                 for inv in inv_list:
                     related.append({"doctype": "Sales Invoice", "name": inv.name, "relation": "Sales Invoice", "details": f"Status: {inv.status} - AED {inv.grand_total}"})
         except Exception as e:
@@ -1127,34 +1272,37 @@ def get_related_documents(doctype, name):
 
     elif doctype == "Purchase Order":
         try:
-            po_doc = frappe.get_doc("Purchase Order", name)
-            if getattr(po_doc, "project", None):
-                related.append({"doctype": "Project", "name": po_doc.project, "relation": "Parent Project", "details": ""})
+            if frappe.has_permission("Purchase Order", "read", doc=name):
+                po_doc = frappe.get_doc("Purchase Order", name)
+                if getattr(po_doc, "project", None) and frappe.has_permission("Project", "read", doc=po_doc.project):
+                    related.append({"doctype": "Project", "name": po_doc.project, "relation": "Parent Project", "details": ""})
 
-            if frappe.db.exists("DocType", "Finance Commitment"):
-                fc_list = frappe.get_all("Finance Commitment", filters={"supplier_po": name}, fields=["name", "approval_status"])
-                for fc in fc_list:
-                    related.append({"doctype": "Finance Commitment", "name": fc.name, "relation": "Finance Commitment Gate", "details": fc.approval_status})
+                if frappe.db.exists("DocType", "Finance Commitment") and frappe.has_permission("Finance Commitment", "read"):
+                    fc_list = frappe.get_list("Finance Commitment", filters={"supplier_po": name}, fields=["name", "approval_status"], ignore_permissions=False)
+                    for fc in fc_list:
+                        related.append({"doctype": "Finance Commitment", "name": fc.name, "relation": "Finance Commitment Gate", "details": fc.approval_status})
         except Exception as e:
             frappe.log_error(f"Error fetching PO related docs for {name}: {str(e)}")
 
     elif doctype == "Finance Commitment":
         try:
-            fc_doc = frappe.get_doc("Finance Commitment", name)
-            if getattr(fc_doc, "project", None):
-                related.append({"doctype": "Project", "name": fc_doc.project, "relation": "Project", "details": ""})
-            if getattr(fc_doc, "supplier_po", None):
-                related.append({"doctype": "Purchase Order", "name": fc_doc.supplier_po, "relation": "Supplier PO", "details": ""})
+            if frappe.has_permission("Finance Commitment", "read", doc=name):
+                fc_doc = frappe.get_doc("Finance Commitment", name)
+                if getattr(fc_doc, "project", None) and frappe.has_permission("Project", "read", doc=fc_doc.project):
+                    related.append({"doctype": "Project", "name": fc_doc.project, "relation": "Project", "details": ""})
+                if getattr(fc_doc, "supplier_po", None) and frappe.has_permission("Purchase Order", "read", doc=fc_doc.supplier_po):
+                    related.append({"doctype": "Purchase Order", "name": fc_doc.supplier_po, "relation": "Supplier PO", "details": ""})
         except Exception as e:
             pass
 
     elif doctype == "Invoice Dossier":
         try:
-            d_doc = frappe.get_doc("Invoice Dossier", name)
-            if getattr(d_doc, "project", None):
-                related.append({"doctype": "Project", "name": d_doc.project, "relation": "Project", "details": ""})
-            if getattr(d_doc, "sales_invoice", None):
-                related.append({"doctype": "Sales Invoice", "name": d_doc.sales_invoice, "relation": "Generated Sales Invoice", "details": ""})
+            if frappe.has_permission("Invoice Dossier", "read", doc=name):
+                d_doc = frappe.get_doc("Invoice Dossier", name)
+                if getattr(d_doc, "project", None) and frappe.has_permission("Project", "read", doc=d_doc.project):
+                    related.append({"doctype": "Project", "name": d_doc.project, "relation": "Project", "details": ""})
+                if getattr(d_doc, "sales_invoice", None) and frappe.has_permission("Sales Invoice", "read", doc=d_doc.sales_invoice):
+                    related.append({"doctype": "Sales Invoice", "name": d_doc.sales_invoice, "relation": "Generated Sales Invoice", "details": ""})
         except Exception as e:
             pass
 
@@ -1168,6 +1316,11 @@ def validate_supplier_po_release(purchase_order_name):
     Supplier PO MUST NOT be released before:
     Customer PO validation + Finance Commitment are approved.
     """
+    if frappe.session.user == "Guest":
+        return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
+    if not frappe.has_permission("Purchase Order", "read", doc=purchase_order_name):
+        return error_response("PERMISSION_DENIED", _("No permission for Purchase Order {0}").format(purchase_order_name), 403)
+
     po = frappe.get_doc("Purchase Order", purchase_order_name)
     if not po.project:
         return success_response({"allowed": True, "message": "No project link required."})
@@ -1190,48 +1343,126 @@ def validate_supplier_po_release(purchase_order_name):
 
 
 @frappe.whitelist()
-def get_document_pdf(doctype, name, print_format=None, letterhead=None):
+def get_document_pdf(doctype, name, print_format=None, letterhead=None, view=0, download=0):
     """
     Universal Corporate Print PDF / HTML Service.
     Generates actual Frappe PDF or print HTML for browser printing / native PDF view.
+    Enforces strict read/print document permissions.
     """
+    if frappe.session.user == "Guest":
+        return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
+    if not frappe.has_permission(doctype, "read", doc=name) and not frappe.has_permission(doctype, "print", doc=name):
+        return error_response("PERMISSION_DENIED", _("No print permission for {0} {1}").format(doctype, name), 403)
+
     try:
         import base64
-        try:
-            pdf_bytes = frappe.get_print(
-                doctype=doctype,
-                name=name,
-                print_format=print_format,
-                letterhead=letterhead,
-                as_pdf=True
-            )
-            b64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
-            return success_response({
-                "doctype": doctype,
-                "name": name,
-                "pdf_base64": b64_pdf,
-                "is_html": False,
-                "filename": f"{doctype}_{name}.pdf"
-            })
-        except Exception as pdf_err:
-            # Fallback to rendered corporate HTML print format for native browser printing
-            html = frappe.get_print(
-                doctype=doctype,
-                name=name,
-                print_format=print_format,
-                letterhead=letterhead,
-                as_pdf=False
-            )
-            b64_html = base64.b64encode(html.encode("utf-8")).decode("utf-8")
-            return success_response({
-                "doctype": doctype,
-                "name": name,
-                "html_base64": b64_html,
-                "is_html": True,
-                "filename": f"{doctype}_{name}.html"
-            })
+        import re
+        from frappe.utils.pdf import get_pdf
+
+        pf_name = print_format or f"ITS Universal Print - {doctype}"
+        if not frappe.db.exists("Print Format", pf_name):
+            try:
+                pf = frappe.get_doc({
+                    "doctype": "Print Format",
+                    "name": pf_name,
+                    "doc_type": doctype,
+                    "module": "ITS UI Redesign",
+                    "standard": "No",
+                    "custom_format": 1,
+                    "print_format_type": "Jinja",
+                    "raw_printing": 0,
+                    "html": "{% include 'templates/print_formats/its_universal_print.html' %}"
+                })
+                pf.insert(ignore_permissions=True)
+                frappe.db.commit()
+            except Exception as pf_err:
+                frappe.log_error(f"Auto Print Format Creation Error for {doctype}: {str(pf_err)}")
+
+
+        doc = frappe.get_doc(doctype, name)
+        from its_ui_redesign.utils.print_helpers import (
+            its_print_company,
+            get_its_logo_data_uri,
+            get_its_doctype_title,
+            get_its_doc_items,
+            get_its_doc_totals,
+            get_its_field_groups,
+            get_its_child_tables,
+        )
+
+        context = {
+            "doc": doc,
+            "company": its_print_company(doc),
+            "logo_uri": get_its_logo_data_uri(),
+            "doc_title": get_its_doctype_title(doc.doctype),
+            "items": get_its_doc_items(doc),
+            "totals": get_its_doc_totals(doc),
+            "field_groups": get_its_field_groups(doc),
+            "child_tables": get_its_child_tables(doc),
+            "frappe": frappe,
+            "_": frappe._,
+        }
+
+        html_clean = frappe.render_template("its_ui_redesign/templates/print_formats/its_universal_print.html", context)
+
+        opts = {
+            "quiet": "",
+            "margin-top": "8mm",
+            "margin-bottom": "8mm",
+            "margin-left": "10mm",
+            "margin-right": "10mm",
+            "page-size": "A4"
+        }
+
+        pdf_bytes = get_pdf(html_clean, options=opts)
+
+
+        if int(view or 0) or int(download or 0):
+            frappe.response.filename = f"{doctype}_{name}.pdf"
+            frappe.response.filecontent = pdf_bytes
+            frappe.response.type = "pdf"
+            frappe.response.display_content_as = "inline"
+            return
+
+        b64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+        
+        return success_response({
+            "doctype": doctype,
+            "name": name,
+            "pdf_base64": b64_pdf,
+            "filename": f"{doctype}_{name}.pdf"
+        })
     except Exception as e:
+        frappe.log_error(f"Error generating PDF for {doctype} {name}: {str(e)}")
         return error_response("PRINT_ERROR", f"Failed to generate print output: {str(e)}")
+
+
+
+@frappe.whitelist()
+def download_document_pdf(doctype, name, print_format=None, letterhead=None):
+    """
+    Direct endpoint that returns application/pdf content for Google Chrome PDF Viewer display.
+    """
+    res = get_document_pdf(doctype, name, print_format=print_format, letterhead=letterhead)
+    if isinstance(res, dict) and not res.get("success"):
+        error_msg = res.get("error", {}).get("message", "Error generating PDF")
+        frappe.throw(error_msg)
+    
+    data = res.get("data", {}) if isinstance(res, dict) else {}
+    pdf_b64 = data.get("pdf_base64")
+    if not pdf_b64:
+        frappe.throw(_("Failed to obtain PDF content"))
+
+    import base64
+    pdf_bytes = base64.b64decode(pdf_b64)
+    filename = data.get("filename", f"{doctype}_{name}.pdf")
+
+    frappe.response.filename = filename
+    frappe.response.filecontent = pdf_bytes
+    frappe.response.type = "pdf"
+    frappe.response.display_content_as = "inline"
+
+
 
 
 # ==============================================================================
@@ -1239,93 +1470,40 @@ def get_document_pdf(doctype, name, print_format=None, letterhead=None):
 # ==============================================================================
 
 @frappe.whitelist()
-def get_contextual_create_options(doctype):
+def get_contextual_create_options(doctype, name=None):
     """
-    Returns available downstream creation targets for a given DocType.
+    Returns available downstream creation targets for a given DocType and optional record name.
     """
-    mapping = {
-        "Opportunity": ["Quotation", "Project"],
-        "Quotation": ["Sales Order", "Finance Commitment", "Project"],
-        "Sales Order": ["Finance Commitment", "Delivery Note"],
-        "Finance Commitment": ["Purchase Order"],
-        "Purchase Order": ["PSS Skid Tracker", "Purchase Receipt"],
-        "PSS Skid Tracker": ["Invoice Dossier", "Quality NCR"],
-        "Invoice Dossier": ["Sales Invoice"],
-        "Delivery Note": ["Invoice Dossier", "Sales Invoice"],
-        "Project": ["Project Task", "Finance Commitment", "PSS Skid Tracker", "Invoice Dossier"]
-    }
-    targets = mapping.get(doctype, [])
-    return success_response(targets)
+    try:
+        from its_ui_redesign.services.business_flow import get_allowed_next_steps
+        targets = get_allowed_next_steps(doctype, source_name=name)
+        return success_response(targets)
+    except Exception as e:
+        frappe.log_error(f"Error fetching create options for {doctype}: {str(e)}")
+        return success_response([])
 
 
 @frappe.whitelist()
 def get_create_target_payload(source_doctype, source_name, target_doctype):
     """
     Carries forward data from source record to initialize target document for "Create >" actions.
+    Enforces permissions, hard stops, and field mapping natively.
     """
     if not source_doctype or not source_name or not target_doctype:
         return error_response("INVALID_PARAMS", "source_doctype, source_name, and target_doctype are required.")
 
     try:
-        source_doc = frappe.get_doc(source_doctype, source_name)
-        payload = {}
-
-        # 1. Quotation -> Sales Order / Contract / Finance Commitment / Project
-        if source_doctype == "Quotation":
-            payload["customer"] = getattr(source_doc, "party_name", None) or getattr(source_doc, "customer", None)
-            payload["project"] = getattr(source_doc, "project", None)
-            payload["company"] = getattr(source_doc, "company", None)
-            payload["currency"] = getattr(source_doc, "currency", "AED")
-            if target_doctype == "Finance Commitment":
-                payload["expected_payable"] = getattr(source_doc, "grand_total", 0.0)
-
-        # 2. Sales Order -> Finance Commitment / Delivery Note
-        elif source_doctype == "Sales Order":
-            payload["customer"] = getattr(source_doc, "customer", None)
-            payload["project"] = getattr(source_doc, "project", None)
-            payload["company"] = getattr(source_doc, "company", None)
-            payload["customer_po"] = getattr(source_doc, "po_no", None)
-            if target_doctype == "Finance Commitment":
-                payload["expected_payable"] = getattr(source_doc, "grand_total", 0.0)
-
-        # 3. Finance Commitment -> Purchase Order
-        elif source_doctype == "Finance Commitment":
-            payload["supplier"] = getattr(source_doc, "supplier", None)
-            payload["project"] = getattr(source_doc, "project", None)
-            payload["company"] = frappe.db.get_value("Company", {}) or "ITS"
-            payload["schedule_date"] = frappe.utils.nowdate()
-
-        # 4. Purchase Order -> PSS Skid Tracker / Purchase Receipt
-        elif source_doctype == "Purchase Order":
-            payload["supplier"] = getattr(source_doc, "supplier", None)
-            payload["project"] = getattr(source_doc, "project", None)
-            payload["supplier_po"] = source_doc.name
-            payload["company"] = getattr(source_doc, "company", None)
-
-        # 5. PSS Skid Tracker -> Invoice Dossier
-        elif source_doctype == "PSS Skid Tracker":
-            payload["project"] = getattr(source_doc, "project", None)
-            payload["customer"] = getattr(source_doc, "customer", None)
-            payload["customer_po"] = getattr(source_doc, "customer_po", None)
-            payload["punch_list_clearance"] = 1 if getattr(source_doc, "punch_closure_status", "") == "Closed" else 0
-
-        # 6. Invoice Dossier -> Sales Invoice
-        elif source_doctype == "Invoice Dossier":
-            payload["customer"] = getattr(source_doc, "customer", None)
-            payload["project"] = getattr(source_doc, "project", None)
-            payload["company"] = frappe.db.get_value("Company", {}) or "ITS"
-            payload["grand_total"] = getattr(source_doc, "net_invoice_amount", 0.0)
-
-        # 7. Project -> Any
-        elif source_doctype == "Project":
-            payload["project"] = source_doc.name
-            payload["customer"] = getattr(source_doc, "customer", None)
-            payload["company"] = getattr(source_doc, "company", None)
-
+        from its_ui_redesign.services.business_flow import build_next_step_payload
+        payload = build_next_step_payload(source_doctype, source_name, target_doctype)
         return success_response(payload)
-
+    except frappe.PermissionError as pe:
+        return error_response("PERMISSION_DENIED", str(pe), status_code=403)
+    except frappe.ValidationError as ve:
+        return error_response("VALIDATION_ERROR", str(ve), status_code=400)
     except Exception as e:
-        return error_response("CREATE_PAYLOAD_ERROR", f"Failed to build payload from {source_doctype} {source_name}: {str(e)}")
+        frappe.log_error(f"Error building create payload for {source_doctype} {source_name} -> {target_doctype}: {str(e)}")
+        return error_response("CREATE_PAYLOAD_ERROR", f"Failed to prepare {target_doctype} from {source_doctype} {source_name}: {str(e)}")
+
 
 
 @frappe.whitelist()

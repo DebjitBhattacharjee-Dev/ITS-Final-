@@ -312,6 +312,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Edit / Create Form Engine Drawer -->
+    <FormDrawer
+      v-if="drawerOpen"
+      :open="drawerOpen"
+      :doc-type="drawerDocType"
+      :initial-data="drawerInitialData"
+      :fields="drawerFields"
+      @close="drawerOpen = false"
+      @saved="handleRecordSaved"
+    />
   </div>
 </template>
 
@@ -326,6 +337,8 @@ import StatusBadge from '../components/tables/StatusBadge.vue'
 import LinkInput from '../components/documents/LinkInput.vue'
 import ChildTableEditor from '../components/documents/ChildTableEditor.vue'
 import RelatedDocuments from '../components/documents/RelatedDocuments.vue'
+import FormDrawer from '../components/documents/FormDrawer.vue'
+import { openDocument } from '../config/navigation'
 import {
   getDocumentDetail,
   saveDocument,
@@ -338,6 +351,7 @@ import {
   getDocTypeMeta,
   getRelatedDocuments,
   getDocumentPdf,
+  getDownloadDocumentPdfUrl,
   getContextualCreateOptions,
   getCreateTargetPayload,
   validateSupplierPORelease
@@ -365,6 +379,11 @@ const userPermissions = ref({ read: true, write: true, create: true, delete: tru
 const relatedDocs = ref([])
 const contextualTargets = ref([])
 const showCreateDropdown = ref(false)
+
+const drawerOpen = ref(false)
+const drawerDocType = ref('')
+const drawerInitialData = ref({})
+const drawerFields = ref([])
 
 const pathInfo = computed(() => {
   const listPath = route.path.substring(0, route.path.lastIndexOf('/'))
@@ -401,7 +420,7 @@ const fetchDocumentData = async () => {
       getDocumentDetail(docType.value, docId.value),
       getDocTypeMeta(docType.value),
       getRelatedDocuments(docType.value, docId.value),
-      getContextualCreateOptions(docType.value)
+      getContextualCreateOptions(docType.value, docId.value)
     ])
 
     if (detailRes && detailRes.success && detailRes.data) {
@@ -565,40 +584,38 @@ const handleCreateTarget = async (targetDocType) => {
   try {
     const res = await getCreateTargetPayload(docType.value, doc.value.name, targetDocType)
     if (res && res.success) {
-      router.push({
-        path: route.path.substring(0, route.path.lastIndexOf('/')),
-        query: { create_target: targetDocType, payload: JSON.stringify(res.data) }
-      })
+      drawerDocType.value = targetDocType
+      drawerInitialData.value = res.data || {}
+      
+      const metaRes = await getDocTypeMeta(targetDocType)
+      if (metaRes && metaRes.success && metaRes.data) {
+        drawerFields.value = metaRes.data.fields || []
+      } else {
+        drawerFields.value = []
+      }
+      
+      drawerOpen.value = true
     } else {
-      notificationStore.showError('Create Action Error', extractFrappeErrorMessage(res, null))
+      notificationStore.showError('Create Action Blocked', extractFrappeErrorMessage(res, null))
     }
   } catch (err) {
     notificationStore.showError('Create Action Error', extractFrappeErrorMessage(null, err))
   }
 }
 
-const handlePrintPdf = async () => {
-  try {
-    const res = await getDocumentPdf(docType.value, doc.value.name)
-    if (res && res.success && (res.data?.pdf_base64 || res.data?.html_base64)) {
-      const b64 = res.data.pdf_base64 || res.data.html_base64
-      const mime = res.data.pdf_base64 ? 'application/pdf' : 'text/html'
-      const byteCharacters = atob(b64)
-      const byteNumbers = new Array(byteCharacters.length)
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i)
-      }
-      const byteArray = new Uint8Array(byteNumbers)
-      const blob = new Blob([byteArray], { type: mime })
-      const blobUrl = URL.createObjectURL(blob)
-      window.open(blobUrl, '_blank')
-    } else {
-      notificationStore.showError('Print Error', extractFrappeErrorMessage(res, null))
-    }
-  } catch (err) {
-    notificationStore.showError('Print Error', extractFrappeErrorMessage(null, err))
+const handleRecordSaved = (savedDoc) => {
+  if (savedDoc && savedDoc.name && drawerDocType.value) {
+    notificationStore.showSuccess('Document Created', `Successfully created ${drawerDocType.value} ${savedDoc.name}`)
+    openDocument(drawerDocType.value, savedDoc.name, router, route.path)
   }
 }
+
+const handlePrintPdf = () => {
+  if (!doc.value) return
+  const url = getDownloadDocumentPdfUrl(docType.value, doc.value.name)
+  window.open(url, '_blank')
+}
+
 
 
 const goBackToList = () => {

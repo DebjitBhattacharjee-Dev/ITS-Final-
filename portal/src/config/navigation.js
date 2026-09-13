@@ -765,6 +765,22 @@ export const WORKSPACES = [
             "docType": "Employee"
           }
         ]
+      },
+      {
+        "title": "User Access & Permissions",
+        "admin_only": true,
+        "items": [
+          {
+            "label": "User Management & User Creation",
+            "route": "/portal/administration/users",
+            "docType": "User"
+          },
+          {
+            "label": "Role Permission Manager",
+            "route": "/portal/administration/role-permissions",
+            "docType": "Custom DocPerm"
+          }
+        ]
       }
     ]
   },

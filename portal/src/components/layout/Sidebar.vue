@@ -16,7 +16,8 @@
     >
       <div class="p-3.5 border-b border-slate-200 flex items-center justify-between">
         <div class="flex items-center space-x-2">
-          <span class="text-sm font-bold tracking-wider text-slate-600 uppercase">
+          <img src="/images/its_logo.png" alt="ITS" class="h-5 w-auto object-contain" />
+          <span class="text-xs font-bold tracking-wider text-slate-700 uppercase">
             WORKSPACES
           </span>
           <router-link 

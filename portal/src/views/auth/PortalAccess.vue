@@ -2,14 +2,18 @@
   <div class="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 selection:bg-blue-600 selection:text-white">
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
       <!-- App Identity Header -->
-      <div class="flex items-center justify-center space-x-2 text-blue-600 mb-3">
-        <Building2 class="w-8 h-8" />
+      <div class="flex items-center justify-center mb-3">
+        <img 
+          src="/images/its_logo.png" 
+          alt="Independent Technical Services LLC" 
+          class="h-16 w-auto object-contain drop-shadow-sm" 
+        />
       </div>
       <h2 class="text-center text-xl font-bold tracking-tight text-slate-900 uppercase">
         ITS Project Operations
       </h2>
       <p class="mt-1 text-center text-sm text-slate-600">
-        Enterprise Construction &amp; Project Management Portal
+        Independent Technical Services LLC — Enterprise Portal
       </p>
     </div>
 

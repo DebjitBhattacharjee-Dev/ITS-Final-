@@ -11,11 +11,12 @@ def get_projects(status=None, search=None):
     if search:
         filters["project_name"] = ["like", f"%{search}%"]
 
-    projects = frappe.get_all(
+    projects = frappe.get_list(
         "Project",
         fields=["name", "project_name", "status", "percent_complete", "expected_end_date", "company"],
         filters=filters,
         order_by="creation desc",
-        limit=50
+        limit_page_length=50,
+        ignore_permissions=False
     )
     return projects

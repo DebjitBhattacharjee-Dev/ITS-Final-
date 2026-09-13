@@ -8,10 +8,9 @@
       >
         <Menu class="w-4 h-4" />
       </button>
-      <div class="flex items-center space-x-2 font-medium tracking-tight">
-        <span class="text-slate-600">ERPNext</span>
-        <span class="text-slate-700">/</span>
-        <span class="text-slate-900 font-semibold">Construction &amp; Projects</span>
+      <div class="flex items-center space-x-2.5 font-medium tracking-tight">
+        <img src="/images/its_logo.png" alt="ITS" class="h-6 w-auto object-contain" />
+        <span class="text-slate-900 font-bold hidden sm:inline">ITS Project Operations</span>
       </div>
     </div>
 
@@ -19,7 +18,7 @@
     <Awesomebar />
 
     <div class="flex items-center space-x-4 shrink-0">
-      <span class="hidden md:inline-block text-slate-600 font-medium">ITS Project Operations</span>
+      <span class="hidden md:inline-block text-slate-600 font-medium text-xs">Independent Technical Services</span>
       <div class="h-4 w-px bg-slate-200 hidden md:block"></div>
       
       <div class="relative flex items-center space-x-2">
