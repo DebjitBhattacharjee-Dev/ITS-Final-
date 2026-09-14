@@ -187,3 +187,10 @@ export async function globalSearch(query) {
   })
   return response.data.message || response.data
 }
+
+export async function getUserPermissions(doctypes = null) {
+  const response = await api.get("/api/method/its_ui_redesign.api.common.get_user_permissions", {
+    params: { doctypes: doctypes ? JSON.stringify(doctypes) : null }
+  })
+  return response.data.message || response.data
+}

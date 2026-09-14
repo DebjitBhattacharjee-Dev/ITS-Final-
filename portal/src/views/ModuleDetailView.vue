@@ -245,6 +245,9 @@ const pageInfo = computed(() => {
   }
   const parts = currentPath.split('/')
   const slug = parts[parts.length - 1]
+  if (['sales-order', 'sales-orders', 'salesorder', 'salesorders'].includes(slug.toLowerCase())) {
+    return { title: 'Sales Orders', docType: 'Sales Order' }
+  }
   const title = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
   return { title, docType: 'Project' }
 })

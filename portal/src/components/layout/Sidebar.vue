@@ -79,7 +79,7 @@ const navStore = useNavigationStore()
 const permStore = usePermissionsStore()
 
 const visibleWorkspaces = computed(() => {
-  return navStore.workspaces.filter(ws => permStore.hasRole(ws.required_roles))
+  return navStore.workspaces.filter(ws => permStore.isWorkspacePermitted(ws))
 })
 
 const isWorkspaceActive = (wsId) => {

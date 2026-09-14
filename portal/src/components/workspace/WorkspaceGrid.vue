@@ -11,19 +11,16 @@
 <script setup>
 import { computed } from 'vue'
 import WorkspaceCard from './WorkspaceCard.vue'
-import { useAuthStore } from '../../stores/auth'
+import { usePermissionsStore } from '../../stores/permissions'
 
 const props = defineProps({
   sections: { type: Array, required: true }
 })
 
-const authStore = useAuthStore()
+const permStore = usePermissionsStore()
 
 const visibleSections = computed(() => {
-  const isAdministrator = authStore.user?.user === 'Administrator'
-  return props.sections.filter(s => {
-    if (s.admin_only && !isAdministrator) return false
-    return true
-  })
+  if (!props.sections) return []
+  return props.sections.filter(s => permStore.isSectionPermitted(s))
 })
 </script>

@@ -345,6 +345,20 @@ const routes = [
         component: RolePermissionManagerView
       },
 
+      // Sales Order direct route compatibility
+      {
+        path: 'sales-order/:id',
+        redirect: to => `/portal/project-management/sales-orders/${to.params.id}`
+      },
+      {
+        path: 'sales-orders/:id',
+        redirect: to => `/portal/project-management/sales-orders/${to.params.id}`
+      },
+      {
+        path: 'sales-orders',
+        redirect: '/portal/project-management/sales-orders'
+      },
+
       // System Pages
       {
         path: '403',

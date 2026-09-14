@@ -28,11 +28,11 @@
     <div v-else class="space-y-10">
       
       <!-- COMMERCIAL -->
-      <section>
+      <section v-if="filterKeys(['G0_Lead', 'G1_Opportunity', 'G2_Supplier_Quotation', 'G3_Quotation', 'G3.5_Project_Contract']).length > 0">
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Commercial</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <WorkflowCard 
-            v-for="key in ['G0_Lead', 'G1_Opportunity', 'G2_Supplier_Quotation', 'G3_Quotation', 'G3.5_Project_Contract']" 
+            v-for="key in filterKeys(['G0_Lead', 'G1_Opportunity', 'G2_Supplier_Quotation', 'G3_Quotation', 'G3.5_Project_Contract'])" 
             :key="key" 
             :data="metrics[key]" 
             :fallbackGate="key.split('_')[0]"
@@ -42,11 +42,11 @@
       </section>
 
       <!-- ORDER & FINANCE -->
-      <section>
+      <section v-if="filterKeys(['G5.5_Sales_Order', 'G7_Purchase_Order']).length > 0">
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Order & Finance</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <WorkflowCard 
-            v-for="key in ['G5.5_Sales_Order', 'G7_Purchase_Order']" 
+            v-for="key in filterKeys(['G5.5_Sales_Order', 'G7_Purchase_Order'])" 
             :key="key" 
             :data="metrics[key]"
             :fallbackGate="key.split('_')[0]"
@@ -56,11 +56,11 @@
       </section>
 
       <!-- QUALITY & DELIVERY -->
-      <section>
+      <section v-if="filterKeys(['G8_Factory_Acceptance_Test', 'G8_Integrated_Factory_Acceptance_Test', 'G8.5_Snag_List', 'G9.5_Delivery_Note']).length > 0">
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Quality & Delivery</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <WorkflowCard 
-            v-for="key in ['G8_Factory_Acceptance_Test', 'G8_Integrated_Factory_Acceptance_Test', 'G8.5_Snag_List', 'G9.5_Delivery_Note']" 
+            v-for="key in filterKeys(['G8_Factory_Acceptance_Test', 'G8_Integrated_Factory_Acceptance_Test', 'G8.5_Snag_List', 'G9.5_Delivery_Note'])" 
             :key="key" 
             :data="metrics[key]" 
             :fallbackGate="key.split('_')[0]"
@@ -70,11 +70,11 @@
       </section>
 
       <!-- COMMISSIONING & BILLING -->
-      <section>
+      <section v-if="filterKeys(['G9.7_Project_Handover', 'G10.5_Sales_Invoice', 'G11_Project_Warranty']).length > 0">
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Commissioning & Billing</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <WorkflowCard 
-            v-for="key in ['G9.7_Project_Handover', 'G10.5_Sales_Invoice', 'G11_Project_Warranty']" 
+            v-for="key in filterKeys(['G9.7_Project_Handover', 'G10.5_Sales_Invoice', 'G11_Project_Warranty'])" 
             :key="key" 
             :data="metrics[key]" 
             :fallbackGate="key.split('_')[0]"
@@ -92,10 +92,16 @@ import { ref, onMounted } from "vue"
 import { AlertCircle } from "lucide-vue-next"
 import WorkflowCard from "../components/dashboard/WorkflowCard.vue"
 import { callApi } from "../services/api"
+import { usePermissionsStore } from "../stores/permissions"
 
 const metrics = ref({})
 const loading = ref(true)
 const error = ref(null)
+const permStore = usePermissionsStore()
+
+const filterKeys = (keys) => {
+  return keys.filter(k => metrics.value[k] && permStore.canRead(metrics.value[k].doctype))
+}
 
 const fetchDashboardData = async () => {
   loading.value = true

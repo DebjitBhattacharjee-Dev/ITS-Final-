@@ -4,6 +4,22 @@ from frappe import _
 
 STANDARD_DOC_FIELDS = {"name", "owner", "creation", "modified", "modified_by", "docstatus", "idx"}
 
+DOCTYPE_MAP = {
+    "sales-order": "Sales Order",
+    "sales-orders": "Sales Order",
+    "salesorder": "Sales Order",
+    "salesorders": "Sales Order",
+}
+
+def normalize_doctype(doctype):
+    if not doctype or not isinstance(doctype, str):
+        return doctype
+    if doctype in DOCTYPE_MAP:
+        return DOCTYPE_MAP[doctype]
+    if doctype.lower() in DOCTYPE_MAP:
+        return DOCTYPE_MAP[doctype.lower()]
+    return doctype
+
 def success_response(data, meta=None):
     res = {"success": True, "data": data}
     if meta is not None:
@@ -98,6 +114,7 @@ def get_doc_workflow_info(doc):
 
 @frappe.whitelist()
 def get_document_list(doctype, filters=None, fields=None, order_by=None, page=1, page_length=20, search_text=None):
+    doctype = normalize_doctype(doctype)
     if frappe.session.user == "Guest":
         return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
     
@@ -193,6 +210,7 @@ def get_document_list(doctype, filters=None, fields=None, order_by=None, page=1,
 
 @frappe.whitelist()
 def get_document_detail(doctype, name):
+    doctype = normalize_doctype(doctype)
     if frappe.session.user == "Guest":
         return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
     
@@ -265,6 +283,7 @@ def get_document_detail(doctype, name):
 
 @frappe.whitelist()
 def get_new_document_template(doctype):
+    doctype = normalize_doctype(doctype)
     if frappe.session.user == "Guest":
         return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
     
@@ -280,6 +299,7 @@ def get_new_document_template(doctype):
 
 @frappe.whitelist()
 def save_document(doctype, doc_data):
+    doctype = normalize_doctype(doctype)
     if frappe.session.user == "Guest":
         return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
     
@@ -347,6 +367,7 @@ def save_document(doctype, doc_data):
 
 @frappe.whitelist()
 def submit_document(doctype, name):
+    doctype = normalize_doctype(doctype)
     if frappe.session.user == "Guest":
         return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
     
@@ -365,6 +386,7 @@ def submit_document(doctype, name):
 
 @frappe.whitelist()
 def cancel_document(doctype, name):
+    doctype = normalize_doctype(doctype)
     if frappe.session.user == "Guest":
         return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
     
@@ -381,6 +403,7 @@ def cancel_document(doctype, name):
 
 @frappe.whitelist()
 def amend_document(doctype, name):
+    doctype = normalize_doctype(doctype)
     if frappe.session.user == "Guest":
         return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
     
@@ -414,6 +437,7 @@ def apply_workflow_action(doctype, name, action):
 
 @frappe.whitelist()
 def delete_document(doctype, name):
+    doctype = normalize_doctype(doctype)
     if frappe.session.user == "Guest":
         return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
     
@@ -429,6 +453,7 @@ def delete_document(doctype, name):
 
 @frappe.whitelist()
 def duplicate_document(doctype, name):
+    doctype = normalize_doctype(doctype)
     if frappe.session.user == "Guest":
         return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
     
@@ -557,6 +582,88 @@ def reload_custom_doctypes():
     return True
 
 @frappe.whitelist()
+def get_user_permissions(doctypes=None):
+    if frappe.session.user == "Guest":
+        return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
+    
+    if isinstance(doctypes, str):
+        try:
+            doctypes = json.loads(doctypes)
+        except Exception:
+            doctypes = [d.strip() for d in doctypes.split(",") if d.strip()]
+            
+    if not doctypes or not isinstance(doctypes, list):
+        import os, re
+        doctypes = []
+        app_path = frappe.get_app_path("its_ui_redesign")
+        nav_file = os.path.abspath(os.path.join(app_path, "..", "portal", "src", "config", "navigation.js"))
+        if os.path.exists(nav_file):
+            try:
+                with open(nav_file, "r") as f:
+                    content = f.read()
+                doctypes = list(set(re.findall(r'"docType":\s*"([^"]+)"', content)))
+            except Exception:
+                pass
+
+    core_doctypes = [
+        "User", "Role", "Role Permission Manager", "Custom Role", "User Permission",
+        "Project", "Customer", "Supplier", "Quotation", "Sales Order", "Purchase Order",
+        "Sales Invoice", "Purchase Invoice", "Payment Entry", "Employee", "Attendance",
+        "Leave Application", "Timesheet", "Item", "Warehouse", "Stock Entry", "Asset",
+        "Work Order", "BOM", "Issue", "Task", "Finance Commitment", "Factory Acceptance Test",
+        "Delivery Note", "BOQ", "Quality Inspection", "Snag List", "Project Handover",
+        "Project Warranty", "Warranty Claim", "Warranty Register", "Budget", "Cost Center",
+        "Item Price", "GL Entry", "Daily Manpower Register", "Material Request",
+        "Equipment Usage Log", "Asset Maintenance", "Site Measurement Item", "Progress Claim",
+        "Payment Certificate", "Project Variation", "Invoice Dossier", "Account",
+        "Payment Request", "Expense Claim", "Journal Entry", "Period Closing Voucher",
+        "Stock Ledger Entry", "Request for Information", "Technical Submittal", "Communication",
+        "Lead", "Opportunity", "Supplier Quotation", "Integrated Factory Acceptance Test", "Project Contract"
+    ]
+    all_target_doctypes = sorted(list(set((doctypes or []) + core_doctypes)))
+
+    permissions = {}
+    for dt in all_target_doctypes:
+        norm_dt = normalize_doctype(dt)
+        perm_dict = None
+        if dt in ["Role Permission Manager", "Custom Role"]:
+            has_admin_access = bool(frappe.has_permission("Role", "read") or frappe.has_permission("User", "read"))
+            perm_dict = {
+                "read": has_admin_access,
+                "create": has_admin_access,
+                "write": has_admin_access,
+                "delete": has_admin_access,
+                "submit": False,
+                "cancel": False,
+                "amend": False
+            }
+        elif frappe.db.exists("DocType", norm_dt):
+            try:
+                meta = frappe.get_meta(norm_dt)
+                perm_dict = {
+                    "read": bool(frappe.has_permission(norm_dt, "read")),
+                    "create": bool(frappe.has_permission(norm_dt, "create")),
+                    "write": bool(frappe.has_permission(norm_dt, "write")),
+                    "delete": bool(frappe.has_permission(norm_dt, "delete")),
+                    "submit": bool(frappe.has_permission(norm_dt, "submit")) if meta.is_submittable else False,
+                    "cancel": bool(frappe.has_permission(norm_dt, "cancel")) if meta.is_submittable else False,
+                    "amend": bool(frappe.has_permission(norm_dt, "amend")) if meta.is_submittable else False,
+                }
+            except Exception:
+                perm_dict = {"read": False, "create": False, "write": False, "delete": False, "submit": False, "cancel": False, "amend": False}
+        else:
+            perm_dict = {"read": False, "create": False, "write": False, "delete": False, "submit": False, "cancel": False, "amend": False}
+
+        if perm_dict:
+            permissions[dt] = perm_dict
+            permissions[norm_dt] = perm_dict
+            permissions[dt.lower()] = perm_dict
+            slug_key = dt.lower().replace(" ", "-")
+            permissions[slug_key] = perm_dict
+
+    return success_response(permissions)
+
+@frappe.whitelist()
 def audit_navigation_doctypes():
     if "System Manager" not in frappe.get_roles(frappe.session.user):
         frappe.throw(_("Only System Manager can execute administrative audit."), frappe.PermissionError)
@@ -590,6 +697,7 @@ def audit_navigation_doctypes():
 
 @frappe.whitelist()
 def get_doctype_meta(doctype):
+    doctype = normalize_doctype(doctype)
     if frappe.session.user == "Guest":
         return error_response("UNAUTHENTICATED", _("Authentication required"), 401)
     
@@ -1193,6 +1301,7 @@ def get_workspace_dashboard(workspace_id, company=None, project=None, from_date=
 
 @frappe.whitelist()
 def get_related_documents(doctype, name):
+    doctype = normalize_doctype(doctype)
     """
     Retrieves all related records across the 10 ITS workspaces for traceability.
     Each query is isolated so missing columns in standard DocTypes never break other linked records.

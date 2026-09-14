@@ -37,6 +37,11 @@ export const WORKSPACES = [
             "docType": "BOQ"
           },
           {
+            "label": "Sales Orders",
+            "route": "/portal/project-management/sales-orders",
+            "docType": "Sales Order"
+          },
+          {
             "label": "Project Team & Responsibilities",
             "route": "/portal/project-management/project-team",
             "docType": "Project User"

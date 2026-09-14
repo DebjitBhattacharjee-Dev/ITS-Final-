@@ -396,6 +396,10 @@ const pathInfo = computed(() => {
       }
     }
   }
+  const mod = route.params.module || ''
+  if (['sales-order', 'sales-orders', 'salesorder', 'salesorders'].includes(mod.toLowerCase())) {
+    return { title: 'Sales Order', docType: 'Sales Order' }
+  }
   return { title: route.params.module || 'Document', docType: route.params.module || 'Project' }
 })
 
