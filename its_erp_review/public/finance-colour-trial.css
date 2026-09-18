@@ -1,0 +1,24 @@
+@media screen {
+ body #view .button.primary,
+ body #dialog .button.primary,
+ body #view .workspace-task > .button {
+  background: #fff0dd;
+  color: #071f4e;
+  border: 1px solid #f3bb79;
+  box-shadow: none;
+ }
+ body #view .button.primary:hover,
+ body #dialog .button.primary:hover,
+ body #view .workspace-task > .button:hover {
+  background: #ffe2bc;
+  border-color: #f18716;
+  color: #071f4e;
+ }
+ body #view .button.primary:focus-visible,
+ body #dialog .button.primary:focus-visible,
+ body #view .workspace-task > .button:focus-visible {
+  outline: 2px solid #071f4e;
+  outline-offset: 3px;
+ }
+}
+

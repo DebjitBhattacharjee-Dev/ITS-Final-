@@ -1,0 +1,83 @@
+{
+ "actions": [],
+ "creation": "2026-09-18 04:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "project_id",
+  "skid_id",
+  "status",
+  "planned_date",
+  "commissioning_date",
+  "engineer",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "project_id",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "ITS Review Project",
+   "reqd": 1
+  },
+  {
+   "fieldname": "skid_id",
+   "fieldtype": "Link",
+   "label": "Skid",
+   "options": "ITS Review Skid",
+   "reqd": 1
+  },
+  {
+   "default": "Site Not Ready",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Site Not Ready\nSite Ready\nFSE Mobilization Planned\nFSE Mobilized\nPre-Commissioning\nSAT\nCommissioning In Progress\nPunch Pending\nCommissioned\nHandover Pending\nHanded Over",
+   "reqd": 1
+  },
+  {
+   "fieldname": "planned_date",
+   "fieldtype": "Date",
+   "label": "Planned Date"
+  },
+  {
+   "fieldname": "commissioning_date",
+   "fieldtype": "Date",
+   "label": "Commissioning Date"
+  },
+  {
+   "fieldname": "engineer",
+   "fieldtype": "Data",
+   "label": "Field Service Engineer"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-18 04:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ITS ERP Review",
+ "name": "ITS Review Commissioning",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

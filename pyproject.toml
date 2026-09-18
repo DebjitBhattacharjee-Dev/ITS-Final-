@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "its_erp_review"
+version = "1.0.0"
+description = "Production-grade Custom ERP Review Portal running alongside ERPNext/Frappe"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []

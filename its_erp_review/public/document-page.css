@@ -1,0 +1,31 @@
+/* Shared paper standard for current and future company document templates. */
+@page { size: A4 portrait; margin: 10mm; }
+/* Explicit template colours override general application/table styles. */
+.tax-sheet { color: #10366f; background-color: #ffffff; }
+.tax-sheet .tax-lines thead th,
+.tax-sheet .tax-total th,
+.tax-sheet .tax-total td,
+.tax-sheet h3 { background-color: #10366f; color: #ffffff; }
+.tax-sheet th, .tax-sheet .tax-sign h4 { background-color: #e5e8ec; color: #10366f; }
+.tax-sheet .tax-lines thead th,
+.tax-sheet .tax-total th { background-color: #10366f; color: #ffffff; }
+.tax-sheet footer { border-top-color: #f18716; }
+@media screen {
+ .tax-print-view #view { overflow-x: auto; }
+ .tax-sheet, .document-sheet {
+  box-sizing: border-box; width: 210mm; max-width: none;
+  min-height: 297mm; padding: 10mm; margin: 20px auto;
+ }
+}
+@media print {
+ .tax-sheet, .tax-sheet *, .document-sheet, .document-sheet * {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+ }
+ body.tax-print-view .tax-sheet, .document-sheet {
+  box-sizing: border-box; width: 190mm; max-width: 100%;
+  min-height: 0; margin: 0; padding: 0;
+ }
+ .tax-sheet tr, .document-sheet tr { break-inside: avoid; }
+ .tax-sheet thead, .document-sheet thead { display: table-header-group; }
+}

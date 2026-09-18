@@ -1,0 +1,103 @@
+{
+ "actions": [],
+ "creation": "2026-09-18 04:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "project_id",
+  "skid_id",
+  "test",
+  "planned_date",
+  "actual_date",
+  "location",
+  "witness",
+  "status",
+  "result",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "project_id",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "ITS Review Project",
+   "reqd": 1
+  },
+  {
+   "fieldname": "skid_id",
+   "fieldtype": "Link",
+   "label": "Skid",
+   "options": "ITS Review Skid",
+   "reqd": 1
+  },
+  {
+   "fieldname": "test",
+   "fieldtype": "Select",
+   "label": "Test Type",
+   "options": "Internal Testing\nFAT\nIFAT\nSAT",
+   "reqd": 1
+  },
+  {
+   "fieldname": "planned_date",
+   "fieldtype": "Date",
+   "label": "Planned Date"
+  },
+  {
+   "fieldname": "actual_date",
+   "fieldtype": "Date",
+   "label": "Actual Date"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location"
+  },
+  {
+   "fieldname": "witness",
+   "fieldtype": "Data",
+   "label": "Witness / Client"
+  },
+  {
+   "default": "Not Planned",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Not Planned\nPlanned\nReady\nIn Progress\nCompleted with Punch\nCompleted\nRejected / Retest Required",
+   "reqd": 1
+  },
+  {
+   "fieldname": "result",
+   "fieldtype": "Small Text",
+   "label": "Test Results"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-18 04:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ITS ERP Review",
+ "name": "ITS Review Event",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

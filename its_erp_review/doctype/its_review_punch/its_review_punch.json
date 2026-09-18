@@ -1,0 +1,132 @@
+{
+ "actions": [],
+ "creation": "2026-09-18 04:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "project_id",
+  "skid_id",
+  "source",
+  "category",
+  "description",
+  "responsible",
+  "assigned",
+  "raised_date",
+  "target_date",
+  "priority",
+  "status",
+  "closure_remarks",
+  "evidence",
+  "closed_date"
+ ],
+ "fields": [
+  {
+   "fieldname": "project_id",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "ITS Review Project",
+   "reqd": 1
+  },
+  {
+   "fieldname": "skid_id",
+   "fieldtype": "Link",
+   "label": "Skid",
+   "options": "ITS Review Skid"
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Data",
+   "label": "Source",
+   "reqd": 1
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Data",
+   "label": "Category"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description",
+   "reqd": 1
+  },
+  {
+   "fieldname": "responsible",
+   "fieldtype": "Data",
+   "label": "Responsible Party",
+   "reqd": 1
+  },
+  {
+   "fieldname": "assigned",
+   "fieldtype": "Data",
+   "label": "Assigned Person",
+   "reqd": 1
+  },
+  {
+   "fieldname": "raised_date",
+   "fieldtype": "Date",
+   "label": "Raised Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "target_date",
+   "fieldtype": "Date",
+   "label": "Target Date",
+   "reqd": 1
+  },
+  {
+   "default": "Normal",
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "Normal\nHigh\nCritical"
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Open\nIn Progress\nPending Client\nReady for Closure\nClosed",
+   "reqd": 1
+  },
+  {
+   "fieldname": "closure_remarks",
+   "fieldtype": "Small Text",
+   "label": "Closure Remarks"
+  },
+  {
+   "fieldname": "evidence",
+   "fieldtype": "Data",
+   "label": "Evidence Reference"
+  },
+  {
+   "fieldname": "closed_date",
+   "fieldtype": "Date",
+   "label": "Closed Date"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-18 04:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ITS ERP Review",
+ "name": "ITS Review Punch",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
