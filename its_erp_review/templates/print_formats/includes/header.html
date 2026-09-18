@@ -2,7 +2,7 @@
 {% set company = company if company is defined else its_print_company(doc) %}
 {% set logo_uri = logo_uri if logo_uri is defined else get_its_logo_data_uri() %}
 
-<header class="its-header">
+<header class="its-header" id="header-html">
   <table class="header-table" style="width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; padding: 0;">
     <tr>
       <!-- Column 1: ITS Corporate Logo (Left Aligned) -->
