@@ -101,42 +101,125 @@
       min-height: 297mm;
       background: #FFFFFF;
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-      padding: 12mm 15mm;
+      padding: 12mm 15mm 15mm 15mm;
       margin: 0 auto;
       box-sizing: border-box;
       border-radius: 2px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+    header.its-header {
+      position: relative;
+      width: 100%;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+    table.print-wrapper {
+      width: 100%;
+      border-collapse: collapse;
+      flex: 1 0 auto;
+    }
+    table.print-wrapper > thead {
+      display: none !important;
+    }
+    table.print-wrapper > thead > tr > td {
+      height: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+    }
+    table.print-wrapper > tfoot {
+      display: none !important;
+    }
+    table.print-wrapper > tfoot > tr > td {
+      height: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+    }
+    footer.its-footer {
+      position: relative;
+      width: 100%;
+      margin-top: auto;
+      padding-top: 15px;
+      flex-shrink: 0;
     }
   }
 
   @media print {
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
     .print-controls { display: none !important; }
-    body { background-color: #FFFFFF !important; }
+    body {
+      background-color: #FFFFFF !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
     .print-body { padding-top: 0 !important; }
     .a4-container {
       width: 100% !important;
-      min-height: auto !important;
+      min-height: 0 !important;
       box-shadow: none !important;
-      padding: 0 !important;
+      padding: 0 15mm !important;
       margin: 0 !important;
+      display: block !important;
     }
     header.its-header {
       position: fixed !important;
       top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
+      left: 15mm !important;
+      right: 15mm !important;
       height: 36mm !important;
       background: #FFFFFF !important;
       z-index: 9999 !important;
       border-bottom: 2.5px solid #002B49 !important;
+      padding-top: 10mm !important;
+      margin: 0 !important;
     }
     footer.its-footer {
       position: fixed !important;
       bottom: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
+      left: 15mm !important;
+      right: 15mm !important;
       height: 22mm !important;
       background: #FFFFFF !important;
       z-index: 9999 !important;
+      padding-bottom: 8mm !important;
+      margin: 0 !important;
+    }
+    table.print-wrapper {
+      width: 100% !important;
+      border-collapse: collapse !important;
+    }
+    table.print-wrapper > thead {
+      display: table-header-group !important;
+    }
+    table.print-wrapper > thead > tr > td {
+      height: 48mm !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+    }
+    table.print-wrapper > tfoot {
+      display: table-footer-group !important;
+    }
+    table.print-wrapper > tfoot > tr > td {
+      height: 26mm !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+    }
+    table.print-wrapper > tbody > tr > td {
+      padding: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+      vertical-align: top !important;
     }
   }
 
@@ -377,7 +460,7 @@
   <div class="a4-container">
 
   <!-- REPEATING HEADER -->
-  <header class="its-header">
+  <header class="its-header" id="header-html">
     <table class="header-table">
       <tr>
         <td class="logo-cell">
@@ -407,15 +490,6 @@
       </tr>
     </table>
   </header>
-
-  <!-- REPEATING FOOTER -->
-  <footer class="its-footer">
-    <div class="footer-gold-bar"></div>
-    <div class="footer-text">
-      <span class="footer-contact">{{ company.po_box }}</span><br>
-      Tel: {{ company.phone }} | Fax: {{ company.fax }} | Email: {{ company.email }}
-    </div>
-  </footer>
 
   <!-- MASTER PRINT CONTAINER FOR REPEATING HEADER/FOOTER SPACING -->
   <table class="print-wrapper">
@@ -668,6 +742,15 @@
       </tr>
     </tfoot>
   </table>
+
+  <!-- REPEATING FOOTER -->
+  <footer class="its-footer" id="footer-html">
+    <div class="footer-gold-bar"></div>
+    <div class="footer-text">
+      <span class="footer-contact">{{ company.po_box }}</span><br>
+      Tel: {{ company.phone }} | Fax: {{ company.fax }} | Email: {{ company.email }}
+    </div>
+  </footer>
 
   </div><!-- /a4-container -->
 </div><!-- /print-body -->

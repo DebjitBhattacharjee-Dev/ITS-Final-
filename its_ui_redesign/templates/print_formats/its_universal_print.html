@@ -295,7 +295,7 @@
 <body>
 
   <!-- REPEATING HEADER -->
-  <header class="its-header">
+  <header class="its-header" id="header-html">
     <table class="header-table">
       <tr>
         <td class="logo-cell">
@@ -325,16 +325,6 @@
       </tr>
     </table>
   </header>
-
-
-  <!-- REPEATING FOOTER -->
-  <footer class="its-footer">
-    <div class="footer-gold-bar"></div>
-    <div class="footer-text">
-      <span class="footer-contact">{{ company.po_box }}</span><br>
-      Tel: {{ company.phone }} | Fax: {{ company.fax }} | Email: {{ company.email }}
-    </div>
-  </footer>
 
   <!-- MASTER PRINT CONTAINER FOR REPEATING HEADER/FOOTER SPACING -->
   <table class="print-wrapper">
@@ -585,6 +575,15 @@
       </tr>
     </tfoot>
   </table>
+
+  <!-- REPEATING FOOTER -->
+  <footer class="its-footer" id="footer-html">
+    <div class="footer-gold-bar"></div>
+    <div class="footer-text">
+      <span class="footer-contact">{{ company.po_box }}</span><br>
+      Tel: {{ company.phone }} | Fax: {{ company.fax }} | Email: {{ company.email }}
+    </div>
+  </footer>
 
 </body>
 </html>
