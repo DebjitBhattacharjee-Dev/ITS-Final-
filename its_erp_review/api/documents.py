@@ -1,7 +1,6 @@
 import frappe
 import json
 from frappe import _
-from its_erp_review.api.permissions import PERSONA_ROLES
 
 # Standard domain workflow definitions
 DEFAULT_WORKFLOWS = {
@@ -96,12 +95,13 @@ def get_workspace():
 	}
 
 	from its_erp_review.api.permissions import get_user_permissions
+	user_info = get_user_permissions()
 	token = frappe.sessions.get_csrf_token() if getattr(frappe.local, "session_obj", None) else ""
 
 	return {
 		"state": state,
 		"revision": revision,
-		"permissions": user_info["permissions"],
+		"permissions": user_info.get("permissions", []),
 		"token": token
 	}
 
@@ -264,7 +264,7 @@ def save_records(records=None, revision=None):
 				"project_type": "POWERSKID" if "SK" in proj_id else "TRADING",
 				"status": "Active"
 			})
-			proj_doc.insert(ignore_permissions=True)
+			proj_doc.insert()
 
 		title = rec.get("title") or "Document " + rec_id
 		category = rec.get("type") or "engineering"
@@ -278,7 +278,7 @@ def save_records(records=None, revision=None):
 			doc.category = category
 			doc.status = status
 			doc.review_comments = comments_json
-			doc.save(ignore_permissions=True)
+			doc.save()
 		else:
 			doc = frappe.get_doc({
 				"doctype": "ITS Review Document",
@@ -291,7 +291,7 @@ def save_records(records=None, revision=None):
 				"owner": rec.get("owner", "Commercial"),
 				"review_comments": comments_json
 			})
-			doc.insert(ignore_permissions=True)
+			doc.insert()
 
 	new_revision = current_revision + 1
 	frappe.db.set_single_value("ITS Review Settings", "shared_revision", new_revision)
@@ -316,7 +316,7 @@ def _ensure_initial_db_setup():
 					"customer": p["customer"],
 					"project_type": p["project_type"],
 					"status": p["status"]
-				}).insert(ignore_permissions=True)
+				}).insert()
 		frappe.db.commit()
 
 	if frappe.db.count("ITS Review Party") == 0:
@@ -335,7 +335,7 @@ def _ensure_initial_db_setup():
 					"party_name": party["party_name"],
 					"country": party["country"],
 					"status": party["status"]
-				}).insert(ignore_permissions=True)
+				}).insert()
 		frappe.db.commit()
 
 	if frappe.db.count("ITS Review Material") == 0:
@@ -355,7 +355,7 @@ def _ensure_initial_db_setup():
 					"unit_price": mat["unit_price"],
 					"currency": mat["currency"],
 					"status": mat["status"]
-				}).insert(ignore_permissions=True)
+				}).insert()
 		frappe.db.commit()
 
 	if frappe.db.count("ITS Review Skid") == 0:
@@ -371,7 +371,7 @@ def _ensure_initial_db_setup():
 				"rating": "800 kVA",
 				"location": "ITS Workshop",
 				"status": "In Progress"
-			}).insert(ignore_permissions=True)
+			}).insert()
 		frappe.db.commit()
 
 	if frappe.db.count("ITS Review Document") == 0:
@@ -437,7 +437,7 @@ def _ensure_initial_db_setup():
 					"status": d["status"],
 					"owner": d["owner"],
 					"review_comments": json.dumps(full_rec)
-				}).insert(ignore_permissions=True)
+				}).insert()
 		frappe.db.commit()
 
 
@@ -501,11 +501,351 @@ def resolve_target_doctype(doctype, name):
 
 	return doctype or "ITS Review Document"
 
-@frappe.whitelist(allow_guest=True)
-def get_document_detail(doctype=None, name=None, active_persona=None):
+@frappe.whitelist()
+def get_document_workflow_state(doctype=None, name=None):
+	"""
+	Returns the authoritative, dynamic workflow and submission progress model
+	for a given document based strictly on native Frappe DocType metadata, active
+	Workflow configurations, transition graphs, docstatus, and frappe.session.user permissions.
+	
+	Strictly implements the 3 categories:
+	Category A: Document has an active Frappe Workflow -> returns real workflow states,
+	            graph-derived progression steps, and user-permitted transitions.
+	Category B: No Workflow, but DocType is submittable (is_submittable = 1) -> returns
+	            exactly a 2-step progress model (Draft Created -> Submitted) using docstatus.
+	Category C: Non-submittable (is_submittable = 0) and No Workflow -> progress_mode = "hidden",
+	            steps = [], progress bar must be completely hidden.
+	"""
+	user = frappe.session.user
+	if user == "Guest":
+		frappe.throw(_("Authentication required"), frappe.AuthenticationError)
+
+	if not name:
+		frappe.throw(_("Document name/ID is required"))
+
+	real_doctype = resolve_target_doctype(doctype, name)
+
+	if not frappe.db.exists(real_doctype, name):
+		frappe.throw(_("Document {0} {1} not found").format(real_doctype, name), frappe.DoesNotExistError)
+
+	# Permission check: Read permission is required to view document workflow
+	if not frappe.has_permission(real_doctype, "read", doc=name):
+		frappe.throw(_("Access Denied: You do not have permission to view {0} {1}").format(real_doctype, name), frappe.PermissionError)
+
+	doc = frappe.get_doc(real_doctype, name)
+	meta = frappe.get_meta(real_doctype)
+	is_submittable = bool(meta.is_submittable)
+
+	# Check for active workflow in native Frappe
+	workflow_name = frappe.model.workflow.get_workflow_name(real_doctype)
+
+	can_edit = bool(doc.docstatus == 0 and frappe.has_permission(real_doctype, "write", doc=doc))
+	can_submit = bool(is_submittable and doc.docstatus == 0 and frappe.has_permission(real_doctype, "submit", doc=doc))
+	can_cancel = bool(is_submittable and doc.docstatus == 1 and frappe.has_permission(real_doctype, "cancel", doc=doc))
+
+	# -------------------------------------------------------------------------
+	# CATEGORY A: DOCUMENT HAS A FRAPPE WORKFLOW
+	# -------------------------------------------------------------------------
+	if workflow_name:
+		workflow = frappe.get_doc("Workflow", workflow_name)
+		state_field = workflow.workflow_state_field or "workflow_state"
+		current_state = doc.get(state_field)
+		if not current_state and workflow.states:
+			current_state = workflow.states[0].state
+			doc.set(state_field, current_state)
+			if not frappe.db.get_value(real_doctype, name, state_field):
+				frappe.db.set_value(real_doctype, name, state_field, current_state, update_modified=False)
+
+		# Get user-permitted transitions via native Frappe API
+		permitted_transitions_raw = frappe.model.workflow.get_transitions(doc, workflow=workflow)
+		permitted_transitions = []
+		for t in permitted_transitions_raw:
+			permitted_transitions.append({
+				"action": t.action,
+				"label": t.action,
+				"state": t.state,
+				"next_state": t.next_state,
+				"allowed": t.allowed
+			})
+
+		# Get all available transitions from current state
+		available_transitions = []
+		for t in workflow.transitions:
+			if t.state == current_state:
+				available_transitions.append({
+					"action": t.action,
+					"label": t.action,
+					"state": t.state,
+					"next_state": t.next_state,
+					"allowed": t.allowed
+				})
+
+		# Fetch workflow audit trail from native Comments
+		workflow_comments = frappe.get_all(
+			"Comment",
+			filters={
+				"reference_doctype": real_doctype,
+				"reference_name": name,
+				"comment_type": "Workflow"
+			},
+			fields=["content", "creation", "comment_email"],
+			order_by="creation asc"
+		)
+		
+		# Build set of completed states from history
+		completed_states = set()
+		first_state = workflow.states[0].state if workflow.states else "Draft"
+		if current_state != first_state:
+			completed_states.add(first_state)
+
+		for c in workflow_comments:
+			if c.content and c.content != current_state:
+				completed_states.add(c.content)
+
+		# Build the workflow steps graph
+		steps = []
+		step_index = 1
+		for s in workflow.states:
+			state_name = s.state
+
+			# Terminal rejection / cancellation states (doc_status == '2') are alternative branches:
+			# Only show them if reached in history or currently active
+			if s.doc_status == '2' and state_name != current_state and state_name not in completed_states:
+				continue
+
+			# Determine step status
+			if state_name == current_state:
+				if s.doc_status == '2':
+					status = "cancelled"
+				elif "Return" in state_name or "Reject" in state_name:
+					status = "returned"
+				elif s.doc_status == '1' and doc.docstatus == 1:
+					status = "completed"
+				else:
+					status = "active"
+			elif state_name in completed_states:
+				status = "completed"
+			else:
+				status = "pending"
+
+			is_current = (state_name == current_state)
+			can_transition_to = any(t["next_state"] == state_name for t in permitted_transitions)
+			step_actions = [t for t in permitted_transitions if t["next_state"] == state_name]
+
+			steps.append({
+				"index": step_index,
+				"state": state_name,
+				"label": state_name,
+				"status": status,
+				"doc_status": s.doc_status,
+				"role": s.allow_edit or "",
+				"is_current": is_current,
+				"can_transition_to": can_transition_to,
+				"permitted_actions": step_actions
+			})
+			step_index += 1
+
+		current_step_obj = next((s for s in steps if s["is_current"]), None)
+		completed_step_list = [s["state"] for s in steps if s["status"] == "completed"]
+		pending_step_list = [s["state"] for s in steps if s["status"] == "pending"]
+
+		return {
+			"has_workflow": True,
+			"is_submittable": is_submittable,
+			"progress_mode": "workflow",
+			"workflow_name": workflow_name,
+			"state_field": state_field,
+			"current_state": current_state,
+			"current_docstatus": doc.docstatus,
+			"steps": steps,
+			"current_step": current_step_obj,
+			"completed_steps": completed_step_list,
+			"pending_steps": pending_step_list,
+			"available_transitions": available_transitions,
+			"permitted_transitions": permitted_transitions,
+			"can_edit": can_edit,
+			"can_submit": can_submit,
+			"can_cancel": can_cancel
+		}
+
+	# -------------------------------------------------------------------------
+	# CATEGORY B: NO WORKFLOW, BUT DOCTYPE IS SUBMITTABLE
+	# -------------------------------------------------------------------------
+	elif is_submittable:
+		# Exactly 2 steps: Draft Created -> Submitted
+		if doc.docstatus == 0:
+			steps = [
+				{"index": 1, "state": "Draft", "label": "Draft Created", "status": "active", "is_current": True, "docstatus": 0, "role": "Author"},
+				{"index": 2, "state": "Submitted", "label": "Submitted", "status": "pending", "is_current": False, "docstatus": 1, "role": "Approver"}
+			]
+			current_state = "Draft"
+		elif doc.docstatus == 1:
+			steps = [
+				{"index": 1, "state": "Draft", "label": "Draft Created", "status": "completed", "is_current": False, "docstatus": 0, "role": "Author"},
+				{"index": 2, "state": "Submitted", "label": "Submitted", "status": "completed", "is_current": True, "docstatus": 1, "role": "Approver"}
+			]
+			current_state = "Submitted"
+		else: # docstatus == 2 (Cancelled)
+			steps = [
+				{"index": 1, "state": "Draft", "label": "Draft Created", "status": "completed", "is_current": False, "docstatus": 0, "role": "Author"},
+				{"index": 2, "state": "Cancelled", "label": "Cancelled", "status": "cancelled", "is_current": True, "docstatus": 2, "role": "Approver"}
+			]
+			current_state = "Cancelled"
+
+		permitted_transitions = []
+		if can_submit:
+			permitted_transitions.append({
+				"action": "Submit",
+				"label": "Submit Document",
+				"state": "Draft",
+				"next_state": "Submitted",
+				"is_primary": True
+			})
+		if can_cancel:
+			permitted_transitions.append({
+				"action": "Cancel",
+				"label": "Cancel Document",
+				"state": "Submitted",
+				"next_state": "Cancelled",
+				"is_danger": True
+			})
+
+		return {
+			"has_workflow": False,
+			"is_submittable": True,
+			"progress_mode": "submission",
+			"workflow_name": None,
+			"state_field": "docstatus",
+			"current_state": current_state,
+			"current_docstatus": doc.docstatus,
+			"steps": steps,
+			"current_step": next((s for s in steps if s["is_current"]), None),
+			"completed_steps": [s["state"] for s in steps if s["status"] == "completed"],
+			"pending_steps": [s["state"] for s in steps if s["status"] == "pending"],
+			"available_transitions": permitted_transitions,
+			"permitted_transitions": permitted_transitions,
+			"can_edit": can_edit,
+			"can_submit": can_submit,
+			"can_cancel": can_cancel
+		}
+
+	# -------------------------------------------------------------------------
+	# CATEGORY C: NON-SUBMITTABLE AND NO WORKFLOW
+	# -------------------------------------------------------------------------
+	else:
+		raw_status = getattr(doc, "status", None) or "Active"
+		return {
+			"has_workflow": False,
+			"is_submittable": False,
+			"progress_mode": "hidden",
+			"workflow_name": None,
+			"state_field": None,
+			"current_state": raw_status,
+			"current_docstatus": doc.docstatus,
+			"steps": [],
+			"current_step": None,
+			"completed_steps": [],
+			"pending_steps": [],
+			"available_transitions": [],
+			"permitted_transitions": [],
+			"can_edit": can_edit,
+			"can_submit": False,
+			"can_cancel": False
+		}
+
+@frappe.whitelist()
+def execute_document_workflow_action(doctype=None, name=None, action=None, expected_modified=None):
+	"""
+	Executes a workflow state transition or submission lifecycle action natively.
+	- Validates frappe.session.user authentication
+	- Checks read and operation permissions
+	- Concurrency check: validates expected_modified against doc.modified
+	- For Category A: executes frappe.model.workflow.apply_workflow
+	- For Category B: executes native doc.submit() or doc.cancel()
+	- Returns refreshed document detail and workflow state
+	"""
+	user = frappe.session.user
+	if user == "Guest":
+		frappe.throw(_("Authentication required"), frappe.AuthenticationError)
+
+	if not name or not action:
+		frappe.throw(_("Document name and action are required"))
+
+	real_doctype = resolve_target_doctype(doctype, name)
+
+	if not frappe.db.exists(real_doctype, name):
+		frappe.throw(_("Document {0} {1} not found").format(real_doctype, name), frappe.DoesNotExistError)
+
+	# Read permission
+	if not frappe.has_permission(real_doctype, "read", doc=name):
+		frappe.throw(_("Access Denied: You do not have permission to view {0} {1}").format(real_doctype, name), frappe.PermissionError)
+
+	doc = frappe.get_doc(real_doctype, name)
+
+	# Concurrency check (stale document protection)
+	if expected_modified and str(doc.modified) != str(expected_modified):
+		frappe.throw(_("The document has been modified by another process (Current: {0}, Expected: {1}). Please refresh the page before proceeding.").format(
+			doc.modified, expected_modified
+		), frappe.ValidationError)
+
+	workflow_name = frappe.model.workflow.get_workflow_name(real_doctype)
+
+	if workflow_name:
+		# CATEGORY A: Frappe native workflow execution
+		workflow = frappe.get_doc("Workflow", workflow_name)
+		state_field = workflow.workflow_state_field or "workflow_state"
+		if not doc.get(state_field) and workflow.states:
+			initial_state = workflow.states[0].state
+			doc.set(state_field, initial_state)
+			if not frappe.db.get_value(real_doctype, name, state_field):
+				frappe.db.set_value(real_doctype, name, state_field, initial_state, update_modified=False)
+
+		# Validate user has transition permission
+		permitted_transitions = frappe.model.workflow.get_transitions(doc, workflow=workflow)
+		matching = [t for t in permitted_transitions if t.action == action]
+		if not matching:
+			frappe.throw(_("Workflow action '{0}' is not permitted for your role or conditions are not satisfied on document {1}.").format(
+				action, name
+			), frappe.PermissionError)
+
+		# Apply native workflow transition
+		doc = frappe.model.workflow.apply_workflow(doc, action)
+		frappe.db.commit()
+
+	else:
+		# CATEGORY B: Native DocType submission / cancellation
+		meta = frappe.get_meta(real_doctype)
+		if not meta.is_submittable:
+			frappe.throw(_("Document type {0} is neither workflow-enabled nor submittable").format(real_doctype), frappe.ValidationError)
+
+		if action == "Submit":
+			if not frappe.has_permission(real_doctype, "submit", doc=doc):
+				frappe.throw(_("Access Denied: You do not have permission to submit {0}").format(name), frappe.PermissionError)
+			if doc.docstatus != 0:
+				frappe.throw(_("Document {0} is not in Draft state (current docstatus: {1})").format(name, doc.docstatus))
+			doc.submit()
+			doc.add_comment("Workflow", "Submitted")
+			frappe.db.commit()
+
+		elif action == "Cancel":
+			if not frappe.has_permission(real_doctype, "cancel", doc=doc):
+				frappe.throw(_("Access Denied: You do not have permission to cancel {0}").format(name), frappe.PermissionError)
+			if doc.docstatus != 1:
+				frappe.throw(_("Document {0} cannot be cancelled because it is not submitted (current docstatus: {1})").format(name, doc.docstatus))
+			doc.cancel()
+			doc.add_comment("Workflow", "Cancelled")
+			frappe.db.commit()
+
+		else:
+			frappe.throw(_("Invalid submission action: '{0}'. Supported actions are 'Submit' and 'Cancel'.").format(action))
+
+	return get_document_detail(real_doctype, name)
+
+@frappe.whitelist()
+def get_document_detail(doctype=None, name=None):
 	"""
 	Fetches a single real ERPNext/Frappe document with metadata, permissions matrix,
-	child tables, attachments, activity history, and multi-stage workflow status.
+	child tables, attachments, activity history, and dynamic workflow/submission progress model.
 	"""
 	user = frappe.session.user
 	if user == "Guest":
@@ -526,13 +866,6 @@ def get_document_detail(doctype=None, name=None, active_persona=None):
 	doc = frappe.get_doc(real_doctype, name)
 	meta = frappe.get_meta(real_doctype)
 
-	roles = frappe.get_roles(user)
-	is_admin = "System Manager" in roles or "Administrator" in roles or "ITS Admin" in roles
-	persona = active_persona or frappe.cache().hget("its_review_active_persona", user) or "Administrator"
-	persona_info = PERSONA_ROLES.get(persona, PERSONA_ROLES.get("Administrator", {}))
-	can_persona_approve = "all" in persona_info.get("can_approve", []) or real_doctype in persona_info.get("can_approve", []) or getattr(doc, "category", "") in persona_info.get("can_approve", [])
-	can_user_approve = is_admin or can_persona_approve
-
 	permissions = {
 		"read": True,
 		"write": bool(frappe.has_permission(real_doctype, "write", doc=doc)),
@@ -541,6 +874,9 @@ def get_document_detail(doctype=None, name=None, active_persona=None):
 		"cancel": bool(meta.is_submittable and doc.docstatus == 1 and frappe.has_permission(real_doctype, "cancel", doc=doc)),
 		"delete": bool(frappe.has_permission(real_doctype, "delete", doc=doc))
 	}
+
+	# Retrieve authoritative, dynamic workflow & submission state
+	workflow_state = get_document_workflow_state(real_doctype, name)
 
 	# Extract scalar fields
 	fields_meta = []
@@ -639,51 +975,14 @@ def get_document_detail(doctype=None, name=None, active_persona=None):
 	# Sort history chronologically descending
 	history.sort(key=lambda x: str(x.get("time", "")), reverse=True)
 
-	# Resolve current status
-	raw_status = getattr(doc, "status", None)
-	if prototype_data.get("status"):
-		raw_status = prototype_data["status"]
-	elif not raw_status:
-		raw_status = "Submitted" if doc.docstatus == 1 else "Cancelled" if doc.docstatus == 2 else "Draft"
-
-	# Workflow steps model
-	# States: 'completed', 'active', 'returned', 'pending'
-	step1_state = "completed" if raw_status not in ["Draft"] else "active"
-	step2_state = "pending"
-	if raw_status in ["Pending Review", "Under review"]:
-		step2_state = "active"
-	elif raw_status == "Returned":
-		step2_state = "returned"
-	elif raw_status in ["Approved", "Submitted", "Completed"]:
-		step2_state = "completed"
-
-	step3_state = "pending"
-	if raw_status == "Approved":
-		step3_state = "active"
-	elif raw_status in ["Submitted", "Completed"]:
-		step3_state = "completed"
-	elif raw_status == "Cancelled":
-		step3_state = "cancelled"
-
-	step4_state = "completed" if raw_status in ["Submitted", "Completed"] else "pending"
-
-	workflow_steps = [
-		{"index": 1, "id": "draft", "label": "Draft Created", "role": "Requester / Creator", "state": step1_state},
-		{"index": 2, "id": "review", "label": "Department Verification", "role": persona_info["department"], "state": step2_state},
-		{"index": 3, "id": "approved", "label": "Management Sign-Off", "role": "Approver / Executive", "state": step3_state},
-		{"index": 4, "id": "submitted", "label": "ERP Official Submission", "role": "MariaDB System", "state": step4_state}
-	]
-
-	# Calculate role-based allowed actions
+	# Dynamic allowed actions based on workflow state & docstatus
 	allowed_actions = {
-		"can_edit": bool(raw_status in ["Draft", "Returned"] and doc.docstatus == 0 and permissions["write"]),
-		"can_submit_review": bool(raw_status in ["Draft", "Returned"] and doc.docstatus == 0),
-		"can_approve": bool(raw_status in ["Pending Review", "Under review"] and can_user_approve),
-		"can_return": bool(raw_status in ["Pending Review", "Under review"] and can_user_approve),
-		"can_final_submit": bool(raw_status == "Approved" and doc.docstatus == 0 and (is_admin or persona in ["Management", "Administrator"])),
-		"can_cancel": bool(doc.docstatus == 1 and permissions["cancel"]),
-		"can_delete": bool(raw_status in ["Draft", "Returned"] and doc.docstatus == 0 and permissions["delete"]),
-		"can_print": True
+		"can_edit": bool(doc.docstatus == 0 and permissions["write"]),
+		"can_submit": workflow_state["can_submit"],
+		"can_cancel": workflow_state["can_cancel"],
+		"can_delete": bool(doc.docstatus == 0 and permissions["delete"]),
+		"can_print": True,
+		"permitted_transitions": workflow_state["permitted_transitions"]
 	}
 
 	# Organize field sections for executive presentation
@@ -705,19 +1004,18 @@ def get_document_detail(doctype=None, name=None, active_persona=None):
 		"name": doc.name,
 		"title": getattr(doc, "title", None) or getattr(doc, "customer_name", None) or getattr(doc, "supplier_name", None) or doc.name,
 		"docstatus": doc.docstatus,
-		"status": raw_status,
+		"status": workflow_state["current_state"],
 		"owner": doc.owner,
 		"creation": str(doc.creation),
 		"modified": str(doc.modified),
-		"active_persona": persona,
-		"persona_label": persona_info["label"],
 		"fields": doc_fields,
 		"fields_meta": fields_meta,
 		"sections": sections,
 		"tables": tables,
 		"table_fields": table_fields,
 		"permissions": permissions,
-		"workflow_steps": workflow_steps,
+		"workflow_state": workflow_state,
+		"workflow_steps": workflow_state["steps"],
 		"allowed_actions": allowed_actions,
 		"attachments": attachments,
 		"history": history,
@@ -725,135 +1023,20 @@ def get_document_detail(doctype=None, name=None, active_persona=None):
 		"token": token
 	}
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def transition_document_workflow(doctype=None, name=None, action=None, comments=None, persona=None):
 	"""
-	Executes a workflow state transition with role-based validation and audit trail logging.
-	Supported actions: 'submit_review', 'approve', 'return', 'final_submit', 'cancel'.
+	Backward compatibility wrapper that delegates to execute_document_workflow_action.
 	"""
-	user = frappe.session.user
-	if user == "Guest":
-		frappe.throw(_("Authentication required"), frappe.AuthenticationError)
-
-	if not name or not action:
-		frappe.throw(_("Document name and workflow action are required"))
-
-	real_doctype = resolve_target_doctype(doctype, name)
-	if not frappe.db.exists(real_doctype, name):
-		frappe.throw(_("Document {0} {1} not found").format(real_doctype, name), frappe.DoesNotExistError)
-
-	active_persona = persona or frappe.cache().hget("its_review_active_persona", user) or "Administrator"
-	persona_info = PERSONA_ROLES.get(active_persona, PERSONA_ROLES.get("Administrator", {}))
-	is_admin = "System Manager" in frappe.get_roles(user) or "Administrator" in frappe.get_roles(user)
-	can_persona_approve = "all" in persona_info.get("can_approve", []) or real_doctype in persona_info.get("can_approve", [])
-
-	doc = frappe.get_doc(real_doctype, name)
-	current_status = getattr(doc, "status", None) or ("Submitted" if doc.docstatus == 1 else "Draft")
-
-	prototype_data = {}
-	if real_doctype == "ITS Review Document" and getattr(doc, "review_comments", None):
-		try:
-			prototype_data = json.loads(doc.review_comments)
-			if prototype_data.get("status"):
-				current_status = prototype_data["status"]
-		except Exception:
-			pass
-
-	now_str = str(frappe.utils.now())
-	actor_label = f"{user} [{persona_info['label']}]"
-
-	if action == "submit_review":
-		if current_status not in ["Draft", "Returned"]:
-			frappe.throw(_("Only Draft or Returned records can be submitted for review."))
-		new_status = "Pending Review"
-		action_label = f"Submitted for review by {actor_label}"
-		if comments:
-			action_label += f" — Notes: {comments}"
-
-	elif action == "approve":
-		if not (is_admin or can_persona_approve):
-			frappe.throw(_("Active persona '{0}' does not have authority to approve {1} records. Switch to {2} or Administrator.").format(
-				persona_info['label'], real_doctype, persona_info.get('department', 'Management')
-			), frappe.PermissionError)
-		new_status = "Approved"
-		action_label = f"Approved by {actor_label}"
-		if comments:
-			action_label += f" — Remarks: {comments}"
-
-	elif action == "return":
-		if not (is_admin or can_persona_approve):
-			frappe.throw(_("Active persona '{0}' does not have authority to return {1} records.").format(persona_info['label'], real_doctype), frappe.PermissionError)
-		if not comments or not comments.strip():
-			frappe.throw(_("Please provide specific feedback/reason when returning a document for correction."))
-		new_status = "Returned"
-		action_label = f"Returned for changes by {actor_label} — Reason: {comments}"
-
-	elif action == "final_submit":
-		if not (is_admin or active_persona in ["Management", "Administrator"]):
-			frappe.throw(_("Final submission requires Executive Management or Administrator role."), frappe.PermissionError)
-		meta = frappe.get_meta(real_doctype)
-		if meta.is_submittable and doc.docstatus == 0:
-			doc.submit()
-		new_status = "Submitted"
-		action_label = f"Officially submitted and locked in ERPNext by {actor_label}"
-		if comments:
-			action_label += f" — Notes: {comments}"
-
-	elif action == "cancel":
-		if not (is_admin or active_persona in ["Management", "Administrator"]):
-			frappe.throw(_("Cancelling requires Executive Management or Administrator role."), frappe.PermissionError)
-		meta = frappe.get_meta(real_doctype)
-		if meta.is_submittable and doc.docstatus == 1:
-			doc.cancel()
-		new_status = "Cancelled"
-		action_label = f"Cancelled by {actor_label}"
-		if comments:
-			action_label += f" — Reason: {comments}"
-	else:
-		frappe.throw(_("Invalid workflow action: {0}").format(action))
-
-	# Update status safely checking select options
-	if hasattr(doc, "status"):
-		field_meta = doc.meta.get_field("status")
-		if field_meta and field_meta.fieldtype == "Select" and field_meta.options:
-			valid_opts = [o.strip() for o in field_meta.options.split("\n") if o.strip()]
-			if new_status in valid_opts:
-				doc.status = new_status
-			elif new_status == "Pending Review" and "Submitted" in valid_opts:
-				doc.status = "Submitted"
-			elif new_status == "Cancelled" and "Returned" in valid_opts:
-				doc.status = "Returned"
-		else:
-			doc.status = new_status
-
-	# Add comment / audit log
-	frappe.get_doc({
-		"doctype": "Comment",
-		"comment_type": "Workflow",
-		"reference_doctype": real_doctype,
-		"reference_name": name,
-		"content": action_label,
-		"comment_email": user
-	}).insert(ignore_permissions=True)
-
-	# Update prototype_data if ITS Review Document
-	if real_doctype == "ITS Review Document":
-		if not prototype_data:
-			prototype_data = {"id": name, "title": doc.title or name, "history": []}
-		prototype_data["status"] = new_status
-		if "history" not in prototype_data:
-			prototype_data["history"] = []
-		prototype_data["history"].append({
-			"time": now_str,
-			"actor": actor_label,
-			"action": action_label
-		})
-		doc.review_comments = json.dumps(prototype_data)
-
-	doc.save(ignore_permissions=True)
-	frappe.db.commit()
-
-	return get_document_detail(real_doctype, name, active_persona=active_persona)
+	action_map = {
+		"submit_review": "Submit for Approval",
+		"approve": "Approve",
+		"return": "Reject",
+		"final_submit": "Submit",
+		"cancel": "Cancel"
+	}
+	real_action = action_map.get(action, action)
+	return execute_document_workflow_action(doctype=doctype, name=name, action=real_action)
 
 @frappe.whitelist(allow_guest=True)
 def save_document_detail(doctype=None, name=None, data=None):

@@ -89,22 +89,30 @@
 	}
 
 	function renderWorkflowStepper() {
-		if (!currentDoc || !currentDoc.workflow_steps) return '';
-		const steps = currentDoc.workflow_steps;
+		if (!currentDoc) return '';
+		const wf = currentDoc.workflow_state;
+		// CATEGORY C: Non-submittable and no workflow: Completely hide progress bar!
+		if (!wf || wf.progress_mode === 'hidden') {
+			return '';
+		}
+
+		const steps = wf.steps || currentDoc.workflow_steps || [];
+		if (!steps.length) return '';
 
 		return `
-			<div class="doc-workflow-bar">
+			<div class="doc-workflow-bar" role="region" aria-label="Document Progression">
 				<div class="workflow-stepper">
 					${steps.map(s => {
 						let nodeContent = s.index;
-						if (s.state === 'completed') nodeContent = '✓';
-						else if (s.state === 'returned') nodeContent = '!';
+						if (s.status === 'completed') nodeContent = '✓';
+						else if (s.status === 'returned') nodeContent = '!';
+						else if (s.status === 'cancelled') nodeContent = '✕';
 
 						return `
-							<div class="stepper-step ${s.state}">
+							<div class="stepper-step ${s.status || 'pending'} ${s.is_current ? 'active' : ''}">
 								<div class="stepper-node">${nodeContent}</div>
-								<div class="stepper-label">${esc(s.label)}</div>
-								<div class="stepper-role">${esc(s.role)}</div>
+								<div class="stepper-label">${esc(s.label || s.state)}</div>
+								<div class="stepper-role">${esc(s.role || '')}</div>
 							</div>
 						`;
 					}).join('')}
@@ -118,6 +126,7 @@
 		const d = currentDoc;
 		const view = document.getElementById('view');
 		const act = d.allowed_actions || {};
+		const wf = d.workflow_state || {};
 
 		// Header Action Buttons based on Workflow & Permissions
 		let actionsHtml = '';
@@ -128,21 +137,44 @@
 			if (act.can_edit) {
 				actionsHtml += `<button class="button" data-doc-action="edit">Edit details</button>`;
 			}
-			if (act.can_submit_review) {
-				actionsHtml += `<button class="button primary" data-doc-action="submit-review">Submit for Review →</button>`;
+
+			// CATEGORY A: Frappe Native Workflow Transitions permitted to this user
+			if (wf.progress_mode === 'workflow') {
+				const permitted = wf.permitted_transitions || [];
+				if (permitted.length === 1) {
+					const t = permitted[0];
+					actionsHtml += `<button class="button primary" style="background:#002B49;" data-workflow-action="${esc(t.action)}">Next Level Approval (${esc(t.label)})</button>`;
+				} else if (permitted.length > 1) {
+					const primaryTrans = permitted.find(t => {
+						const a = t.action.toLowerCase();
+						return a.includes('approve') || a.includes('submit') || a.includes('confirm') || a.includes('sign');
+					}) || permitted[0];
+					const otherTrans = permitted.filter(t => t !== primaryTrans);
+
+					actionsHtml += `<button class="button primary" style="background:#002B49;" data-workflow-action="${esc(primaryTrans.action)}">Next Level Approval (${esc(primaryTrans.label)})</button>`;
+
+					otherTrans.forEach(t => {
+						const a = t.action.toLowerCase();
+						if (a.includes('return')) {
+							actionsHtml += `<button class="button" style="color:#B91C1C; border-color:#FCA5A5; background:#FEF2F2;" data-workflow-action="${esc(t.action)}">↺ ${esc(t.label)}</button>`;
+						} else if (a.includes('reject')) {
+							actionsHtml += `<button class="button danger" data-workflow-action="${esc(t.action)}">✕ ${esc(t.label)}</button>`;
+						} else {
+							actionsHtml += `<button class="button" data-workflow-action="${esc(t.action)}">${esc(t.label)}</button>`;
+						}
+					});
+				}
 			}
-			if (act.can_approve) {
-				actionsHtml += `<button class="button primary" style="background:#16A34A; border-color:#15803D;" data-doc-action="approve">✓ Approve</button>`;
+			// CATEGORY B: Submittable Document Actions
+			else if (wf.progress_mode === 'submission') {
+				if (wf.can_submit) {
+					actionsHtml += `<button class="button primary" style="background:#002B49;" data-submission-action="Submit">Official ERP Submission (Submit)</button>`;
+				}
+				if (wf.can_cancel) {
+					actionsHtml += `<button class="button danger" data-submission-action="Cancel">Cancel Document</button>`;
+				}
 			}
-			if (act.can_return) {
-				actionsHtml += `<button class="button" style="color:#B91C1C; border-color:#FCA5A5; background:#FEF2F2;" data-doc-action="return">↺ Return for Changes</button>`;
-			}
-			if (act.can_final_submit) {
-				actionsHtml += `<button class="button primary" style="background:#002B49;" data-doc-action="final-submit">Official ERP Submission</button>`;
-			}
-			if (act.can_cancel) {
-				actionsHtml += `<button class="button danger" data-doc-action="cancel">Cancel Document</button>`;
-			}
+
 			if (act.can_delete) {
 				actionsHtml += `<button class="button" data-doc-action="delete" style="color:#991B1B">Delete</button>`;
 			}
@@ -190,8 +222,8 @@
 					<div class="tabs" role="tablist" style="margin-bottom:16px;">
 						${[
 							['details', 'Document Form'],
-							['history', `Workflow & Audit History (${d.history.length})`],
-							['attachments', `Attachments (${d.attachments.length})`],
+							['history', `Workflow & Audit History (${(d.history || []).length})`],
+							['attachments', `Attachments (${(d.attachments || []).length})`],
 							['related', 'Linked Records']
 						].map(([t, l]) => `
 							<button role="tab" aria-selected="${currentTab === t}" data-doc-tab="${t}" class="${currentTab === t ? 'active' : ''}" ${isEditing && t !== 'details' ? 'disabled' : ''}>${l}</button>
@@ -206,25 +238,25 @@
 				<div class="side-stack" style="width:320px; shrink:0;">
 					<section class="side-panel">
 						<div class="next-label">CURRENT WORKFLOW STAGE</div>
-						<h3 style="color:#002B49; margin-top:6px;">${getStageTitle(d)}</h3>
-						<p style="color:#475569; font-size:13px; line-height:1.45;">${getStageDescription(d)}</p>
-						<div class="label" style="margin-top:18px">Active Persona Authority</div>
-						<div class="value" style="font-weight:700; color:#005A9C;">${esc(d.persona_label || 'Administrator')}</div>
+						<h3 style="color:#002B49; margin-top:6px;">${esc(getStageTitle(d))}</h3>
+						<p style="color:#475569; font-size:13px; line-height:1.45;">${esc(getStageDescription(d))}</p>
+						<div class="label" style="margin-top:18px">Document Classification</div>
+						<div class="value" style="font-weight:700; color:#005A9C;">${esc(wf.has_workflow ? (wf.workflow_name || 'Workflow Controlled') : (wf.is_submittable ? 'Submittable Document' : 'Standard Master Record'))}</div>
 					</section>
 
 					<section class="side-panel">
 						<h3>Approval & Verification</h3>
-						<div class="check ${d.status === 'Approved' || d.status === 'Submitted' ? '' : 'pending'}">
-							<span class="mark">${d.status === 'Approved' || d.status === 'Submitted' ? '✓' : '○'}</span>
-							Department Approval
+						<div class="check ${d.status !== 'Draft' ? '' : 'pending'}">
+							<span class="mark">${d.status !== 'Draft' ? '✓' : '○'}</span>
+							${wf.has_workflow ? 'Workflow Progress' : 'Initial Review'}
 						</div>
 						<div class="check ${d.docstatus === 1 ? '' : 'pending'}">
 							<span class="mark">${d.docstatus === 1 ? '✓' : '○'}</span>
 							ERP Submission Lock
 						</div>
-						<div class="check ${d.attachments.length > 0 ? '' : 'pending'}">
-							<span class="mark">${d.attachments.length > 0 ? '✓' : '○'}</span>
-							Supporting Evidence (${d.attachments.length})
+						<div class="check ${(d.attachments || []).length > 0 ? '' : 'pending'}">
+							<span class="mark">${(d.attachments || []).length > 0 ? '✓' : '○'}</span>
+							Supporting Evidence (${(d.attachments || []).length})
 						</div>
 					</section>
 				</div>
@@ -235,21 +267,33 @@
 	}
 
 	function getStageTitle(d) {
-		if (d.status === 'Pending Review') return 'Department Verification Required';
-		if (d.status === 'Approved') return 'Approved · Ready for Official Submission';
-		if (d.status === 'Returned') return 'Returned for Modifications';
-		if (d.status === 'Submitted') return 'Locked & Submitted in MariaDB';
-		if (d.status === 'Cancelled') return 'Document Cancelled';
-		return 'Draft Initiation';
+		const wf = d.workflow_state;
+		if (wf && wf.progress_mode === 'workflow') {
+			return wf.current_state || 'In Review';
+		}
+		if (wf && wf.progress_mode === 'submission') {
+			if (d.docstatus === 1) return 'Submitted & Locked in ERPNext';
+			if (d.docstatus === 2) return 'Cancelled in ERPNext';
+			return 'Draft Initiation';
+		}
+		return d.status || 'Active Master Record';
 	}
 
 	function getStageDescription(d) {
-		if (d.status === 'Pending Review') return 'This document is awaiting review and sign-off by the authorized department lead.';
-		if (d.status === 'Approved') return 'Department checks are complete. Proceed with official submission or downstream orders.';
-		if (d.status === 'Returned') return 'The reviewer requested revisions. Check audit history comments, update details, and resubmit.';
-		if (d.status === 'Submitted') return 'Record is officially logged in ERPNext and protected against tampering.';
-		if (d.status === 'Cancelled') return 'This document was cancelled by executive management.';
-		return 'Complete all required fields and item lines, then click "Submit for Review".';
+		const wf = d.workflow_state;
+		if (wf && wf.progress_mode === 'workflow') {
+			const pending = wf.pending_steps || [];
+			if (pending.length) {
+				return `Current state: "${wf.current_state}". Next progression: ${pending[0]}. Action restricted to authorized roles.`;
+			}
+			return `Current state: "${wf.current_state}". Final workflow state reached.`;
+		}
+		if (wf && wf.progress_mode === 'submission') {
+			if (d.docstatus === 1) return 'This record has been officially submitted and validated in ERPNext.';
+			if (d.docstatus === 2) return 'This record was cancelled.';
+			return 'Document is in draft state. Click "Official ERP Submission" to submit.';
+		}
+		return 'Standard ERPNext master record. Changes and links are managed directly with native permissions.';
 	}
 
 	function renderTabContent() {
@@ -640,19 +684,19 @@
 		}
 	}
 
-	function showReturnDialog() {
+	function showReturnDialog(actionName = 'Reject') {
 		const dialog = document.getElementById('dialog');
 		const dialogBody = document.getElementById('dialog-body');
 		dialogBody.innerHTML = `
 			<div class="return-modal-box">
-				<div class="eyebrow" style="color:#DC2626;">WORKFLOW REVISION</div>
-				<h3>Return for Changes</h3>
-				<p>Please enter the specific feedback or required corrections for the requester before resubmitting.</p>
+				<div class="eyebrow" style="color:#DC2626;">WORKFLOW ACTION</div>
+				<h3>${esc(actionName)}</h3>
+				<p>Please enter comments or remarks for this workflow transition before proceeding.</p>
 				<form id="doc-return-modal-form">
-					<textarea name="return_reason" required placeholder="e.g. Please update material unit price and attach client SES certificate..."></textarea>
-					<div class="form-actions" style="display:flex; justify-content:flex-end; gap:10px;">
+					<textarea name="return_reason" placeholder="e.g. Please update material pricing and resubmit..."></textarea>
+					<div class="form-actions" style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px;">
 						<button type="button" class="button" onclick="document.getElementById('dialog').close()">Cancel</button>
-						<button type="submit" class="button danger">Return Record</button>
+						<button type="submit" class="button danger">Confirm ${esc(actionName)}</button>
 					</div>
 				</form>
 			</div>
@@ -661,17 +705,14 @@
 
 		document.getElementById('doc-return-modal-form').onsubmit = async (e) => {
 			e.preventDefault();
-			const reason = e.target.return_reason.value.trim();
-			if (!reason) return;
 			dialog.close();
-
 			try {
-				const updated = await window.frappeDocApi.transitionWorkflow(currentDoc.doctype, currentDoc.name, 'return', reason);
+				const updated = await window.frappeDocApi.executeAction(currentDoc.doctype, currentDoc.name, actionName, currentDoc.modified);
 				currentDoc = updated;
-				if (typeof notify === 'function') notify('Document returned for changes.');
+				if (typeof notify === 'function') notify(`Workflow action "${actionName}" executed.`);
 				renderDocumentView();
 			} catch (err) {
-				alert(err.message);
+				alert(err.message || 'Workflow transition failed');
 			}
 		};
 	}
@@ -695,6 +736,65 @@
 					const el = document.getElementById(`line-amount-${i}`);
 					if (el) el.textContent = money((Number(l.qty) || 1) * (Number(l.rate) || 0));
 				});
+			};
+		});
+
+		// Dynamic Workflow Action Handlers (Category A)
+		view.querySelectorAll('[data-workflow-action]').forEach(btn => {
+			btn.onclick = async (e) => {
+				e.preventDefault();
+				const actionName = btn.dataset.workflowAction;
+				if (actionName.toLowerCase().includes('return') || actionName.toLowerCase().includes('reject')) {
+					showReturnDialog(actionName);
+					return;
+				}
+
+				if (!confirm(`Execute "${actionName}" for ${currentDoc.name}?`)) return;
+				try {
+					btn.disabled = true;
+					const originalText = btn.innerHTML;
+					btn.innerHTML = `<span class="spinner-sm"></span> Processing...`;
+					const updated = await window.frappeDocApi.executeAction(
+						currentDoc.doctype,
+						currentDoc.name,
+						actionName,
+						currentDoc.modified
+					);
+					currentDoc = updated;
+					if (typeof notify === 'function') notify(`Workflow action "${actionName}" completed.`);
+					renderDocumentView();
+				} catch (err) {
+					btn.disabled = false;
+					alert(err.message || 'Workflow action failed');
+					renderDocumentView();
+				}
+			};
+		});
+
+		// Submittable Document Action Handlers (Category B)
+		view.querySelectorAll('[data-submission-action]').forEach(btn => {
+			btn.onclick = async (e) => {
+				e.preventDefault();
+				const subAction = btn.dataset.submissionAction;
+				if (!confirm(`Confirm ${subAction} for ${currentDoc.name}?`)) return;
+				try {
+					btn.disabled = true;
+					const originalText = btn.innerHTML;
+					btn.innerHTML = `<span class="spinner-sm"></span> Processing...`;
+					const updated = await window.frappeDocApi.executeAction(
+						currentDoc.doctype,
+						currentDoc.name,
+						subAction,
+						currentDoc.modified
+					);
+					currentDoc = updated;
+					if (typeof notify === 'function') notify(`Document ${subAction === 'Submit' ? 'submitted & locked' : 'cancelled'}.`);
+					renderDocumentView();
+				} catch (err) {
+					btn.disabled = false;
+					alert(err.message || `${subAction} failed`);
+					renderDocumentView();
+				}
 			};
 		});
 
@@ -733,55 +833,6 @@
 						btn.disabled = false;
 						docErrors = [err.message];
 						renderDocumentView();
-					}
-				} else if (action === 'submit-review') {
-					try {
-						btn.disabled = true;
-						const updated = await window.frappeDocApi.transitionWorkflow(currentDoc.doctype, currentDoc.name, 'submit_review', 'Submitted for review');
-						currentDoc = updated;
-						if (typeof notify === 'function') notify('Submitted for review.');
-						renderDocumentView();
-					} catch (err) {
-						btn.disabled = false;
-						alert(err.message);
-					}
-				} else if (action === 'approve') {
-					if (!confirm(`Confirm approval for ${currentDoc.name}?`)) return;
-					try {
-						btn.disabled = true;
-						const updated = await window.frappeDocApi.transitionWorkflow(currentDoc.doctype, currentDoc.name, 'approve', 'Approved');
-						currentDoc = updated;
-						if (typeof notify === 'function') notify('Document approved.');
-						renderDocumentView();
-					} catch (err) {
-						btn.disabled = false;
-						alert(err.message);
-					}
-				} else if (action === 'return') {
-					showReturnDialog();
-				} else if (action === 'final-submit') {
-					if (!confirm(`Submit and lock ${currentDoc.name} in ERPNext?`)) return;
-					try {
-						btn.disabled = true;
-						const updated = await window.frappeDocApi.transitionWorkflow(currentDoc.doctype, currentDoc.name, 'final_submit', 'Official ERP Submission');
-						currentDoc = updated;
-						if (typeof notify === 'function') notify('Document submitted & locked.');
-						renderDocumentView();
-					} catch (err) {
-						btn.disabled = false;
-						alert(err.message);
-					}
-				} else if (action === 'cancel') {
-					if (!confirm(`Cancel ${currentDoc.name}?`)) return;
-					try {
-						btn.disabled = true;
-						const updated = await window.frappeDocApi.transitionWorkflow(currentDoc.doctype, currentDoc.name, 'cancel', 'Document Cancelled');
-						currentDoc = updated;
-						if (typeof notify === 'function') notify('Document cancelled.');
-						renderDocumentView();
-					} catch (err) {
-						btn.disabled = false;
-						alert(err.message);
 					}
 				} else if (action === 'delete') {
 					if (!confirm(`Permanently delete ${currentDoc.name}?`)) return;

@@ -248,8 +248,7 @@
 			return json.message || json;
 		},
 		async getDetail(doctype, name) {
-			const persona = window.currentPersona || '';
-			const res = await originalFetch(`/api/method/its_erp_review.api.documents.get_document_detail?doctype=${encodeURIComponent(doctype || '')}&name=${encodeURIComponent(name || '')}&active_persona=${encodeURIComponent(persona)}`, {
+			const res = await originalFetch(`/api/method/its_erp_review.api.documents.get_document_detail?doctype=${encodeURIComponent(doctype || '')}&name=${encodeURIComponent(name || '')}`, {
 				headers: { 'X-Frappe-CSRF-Token': window.csrf_token || '' }
 			});
 			const json = await res.json();
@@ -261,43 +260,42 @@
 			}
 			return json.message || json;
 		},
-		async transitionWorkflow(doctype, name, action, comments = '', persona = null) {
-			const activePersona = persona || window.currentPersona || '';
-			const res = await originalFetch('/api/method/its_erp_review.api.documents.transition_document_workflow', {
+		async getWorkflowState(doctype, name) {
+			const res = await originalFetch(`/api/method/its_erp_review.api.documents.get_document_workflow_state?doctype=${encodeURIComponent(doctype || '')}&name=${encodeURIComponent(name || '')}`, {
+				headers: { 'X-Frappe-CSRF-Token': window.csrf_token || '' }
+			});
+			const json = await res.json();
+			if (!res.ok) {
+				throw new Error(json.message || 'Error fetching workflow state');
+			}
+			return json.message || json;
+		},
+		async executeAction(doctype, name, action, expected_modified = null) {
+			const res = await originalFetch('/api/method/its_erp_review.api.documents.execute_document_workflow_action', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 					'X-Frappe-CSRF-Token': window.csrf_token || ''
 				},
-				body: JSON.stringify({ doctype, name, action, comments, persona: activePersona })
+				body: JSON.stringify({ doctype, name, action, expected_modified })
 			});
 			const json = await res.json();
 			if (!res.ok) {
-				let msg = json.message || 'Workflow transition failed';
+				let msg = json.message || 'Workflow action execution failed';
 				if (json._server_messages) {
 					try {
 						const parsed = JSON.parse(json._server_messages);
-						msg = parsed.map(m => JSON.parse(m).message).join('; ');
+						msg = parsed.map(m => {
+							try { return JSON.parse(m).message; } catch(e) { return m; }
+						}).join('; ');
 					} catch (e) {}
 				}
 				throw new Error(msg);
 			}
 			return json.message || json;
 		},
-		async setActivePersona(persona) {
-			const res = await originalFetch('/api/method/its_erp_review.api.permissions.set_active_persona', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-Frappe-CSRF-Token': window.csrf_token || ''
-				},
-				body: JSON.stringify({ persona })
-			});
-			const json = await res.json();
-			if (res.ok && json.message) {
-				window.currentPersona = json.message.active_persona;
-			}
-			return json.message || json;
+		async transitionWorkflow(doctype, name, action, comments = '') {
+			return this.executeAction(doctype, name, action);
 		},
 		async getPrint(doctype, name) {
 			const res = await originalFetch(`/api/method/its_erp_review.api.documents.get_document_print?doctype=${encodeURIComponent(doctype || '')}&name=${encodeURIComponent(name || '')}`, {

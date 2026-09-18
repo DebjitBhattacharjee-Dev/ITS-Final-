@@ -82,7 +82,7 @@ def save_material(material=None):
 		doc.currency = material.get("currency", "AED")
 		doc.description = material.get("description")
 		doc.status = material.get("status", "Active")
-		doc.save(ignore_permissions=True)
+		doc.save()
 	else:
 		doc = frappe.get_doc({
 			"doctype": "ITS Review Material",
@@ -97,7 +97,7 @@ def save_material(material=None):
 			"description": material.get("description"),
 			"status": material.get("status", "Active")
 		})
-		doc.insert(ignore_permissions=True)
+		doc.insert()
 
 	# Also sync to native ERPNext Item DocType if available
 	if frappe.db.table_exists("Item") and not frappe.db.exists("Item", code):
@@ -111,7 +111,7 @@ def save_material(material=None):
 				"standard_rate": float(material.get("unitPrice", 0)),
 				"description": material.get("description") or name
 			})
-			item_doc.insert(ignore_permissions=True)
+			item_doc.insert()
 		except Exception:
 			pass
 

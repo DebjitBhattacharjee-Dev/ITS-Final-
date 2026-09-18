@@ -66,7 +66,7 @@ def save_register(kind=None, record=None):
 		doc.description = record.get("description")
 		doc.status = record.get("status", "Active")
 		doc.notes = record.get("notes")
-		doc.save(ignore_permissions=True)
+		doc.save()
 	else:
 		doc = frappe.get_doc({
 			"doctype": "ITS Review Register",
@@ -89,7 +89,7 @@ def save_register(kind=None, record=None):
 			"status": record.get("status", "Active"),
 			"notes": record.get("notes")
 		})
-		doc.insert(ignore_permissions=True)
+		doc.insert()
 
 	frappe.db.commit()
 

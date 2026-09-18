@@ -14,10 +14,9 @@
 	<script>
 		window.csrf_token = "{{ csrf_token }}";
 		window.frappe_user = "{{ user }}";
-		window.currentPersona = "Administrator";
 	</script>
-	<script src="/assets/its_erp_review/js/frappe-api-adapter.js?v=wf-4"></script>
-	<script src="/assets/its_erp_review/js/erp-document-engine.js?v=wf-4"></script>
+	<script src="/assets/its_erp_review/js/frappe-api-adapter.js?v=wf-5"></script>
+	<script src="/assets/its_erp_review/js/erp-document-engine.js?v=wf-5"></script>
 </head>
 <body>
 	<aside id="sidebar">
@@ -33,9 +32,6 @@
 			<button class="icon-button mobile-menu" data-action="menu" aria-label="Toggle main menu">☰</button>
 			<div class="header-title">Independent Technical Services</div>
 			<div style="display:flex; align-items:center; gap:16px;">
-				<label class="role-control">Role / Persona
-					<select id="persona-selector" aria-label="Active Persona"></select>
-				</label>
 				<label class="role-control">Department view
 					<select id="department" aria-label="Department view"></select>
 				</label>

@@ -112,7 +112,7 @@ def save_party(party=None):
 		doc.payment_terms = party.get("paymentTerms")
 		doc.status = party.get("status", "Active")
 		doc.notes = party.get("notes")
-		doc.save(ignore_permissions=True)
+		doc.save()
 	else:
 		doc = frappe.get_doc({
 			"doctype": "ITS Review Party",
@@ -129,7 +129,7 @@ def save_party(party=None):
 			"status": party.get("status", "Active"),
 			"notes": party.get("notes")
 		})
-		doc.insert(ignore_permissions=True)
+		doc.insert()
 
 	# Also sync to native ERPNext Customer or Supplier DocType if available
 	if party["kind"] == "Customer" and frappe.db.table_exists("Customer"):
@@ -142,7 +142,7 @@ def save_party(party=None):
 					"territory": party.get("country") or "All Territories",
 					"tax_id": party.get("taxId")
 				})
-				c_doc.insert(ignore_permissions=True)
+				c_doc.insert()
 			except Exception:
 				pass
 
@@ -156,7 +156,7 @@ def save_party(party=None):
 					"country": party.get("country") or "United Arab Emirates",
 					"tax_id": party.get("taxId")
 				})
-				s_doc.insert(ignore_permissions=True)
+				s_doc.insert()
 			except Exception:
 				pass
 
