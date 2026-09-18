@@ -62,7 +62,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Draft\nSubmitted\nApproved\nReturned",
+   "options": "Draft\nPending Review\nSubmitted\nApproved\nReturned\nCancelled",
    "reqd": 1
   },
   {

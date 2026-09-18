@@ -247,6 +247,58 @@
 			}
 			return json.message || json;
 		},
+		async getDetail(doctype, name) {
+			const persona = window.currentPersona || '';
+			const res = await originalFetch(`/api/method/its_erp_review.api.documents.get_document_detail?doctype=${encodeURIComponent(doctype || '')}&name=${encodeURIComponent(name || '')}&active_persona=${encodeURIComponent(persona)}`, {
+				headers: { 'X-Frappe-CSRF-Token': window.csrf_token || '' }
+			});
+			const json = await res.json();
+			if (!res.ok) {
+				const err = new Error(json.message || 'Document could not be retrieved');
+				err.status = res.status;
+				err.exc_type = json.exc_type;
+				throw err;
+			}
+			return json.message || json;
+		},
+		async transitionWorkflow(doctype, name, action, comments = '', persona = null) {
+			const activePersona = persona || window.currentPersona || '';
+			const res = await originalFetch('/api/method/its_erp_review.api.documents.transition_document_workflow', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-Frappe-CSRF-Token': window.csrf_token || ''
+				},
+				body: JSON.stringify({ doctype, name, action, comments, persona: activePersona })
+			});
+			const json = await res.json();
+			if (!res.ok) {
+				let msg = json.message || 'Workflow transition failed';
+				if (json._server_messages) {
+					try {
+						const parsed = JSON.parse(json._server_messages);
+						msg = parsed.map(m => JSON.parse(m).message).join('; ');
+					} catch (e) {}
+				}
+				throw new Error(msg);
+			}
+			return json.message || json;
+		},
+		async setActivePersona(persona) {
+			const res = await originalFetch('/api/method/its_erp_review.api.permissions.set_active_persona', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-Frappe-CSRF-Token': window.csrf_token || ''
+				},
+				body: JSON.stringify({ persona })
+			});
+			const json = await res.json();
+			if (res.ok && json.message) {
+				window.currentPersona = json.message.active_persona;
+			}
+			return json.message || json;
+		},
 		async getPrint(doctype, name) {
 			const res = await originalFetch(`/api/method/its_erp_review.api.documents.get_document_print?doctype=${encodeURIComponent(doctype || '')}&name=${encodeURIComponent(name || '')}`, {
 				headers: { 'X-Frappe-CSRF-Token': window.csrf_token || '' }

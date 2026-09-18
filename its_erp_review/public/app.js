@@ -49,8 +49,47 @@ document.addEventListener('click',e=>{const recordLink=e.target.closest('a[href*
 document.addEventListener('input',e=>{if(e.target.id==='search'){filter.query=e.target.value;updateList()}if(e.target.closest('#record-form')&&(e.target.name.startsWith('line:')||e.target.name==='taxRate'||['f:retention','f:recovery','f:ld'].includes(e.target.name))){collect();const money=n=>currencyMoney(n,recordCurrency(editDraft));const t=totals(editDraft);if($('subtotal')){$('subtotal').textContent=money(t.subtotal);$('tax-total').textContent=money(t.tax);$('grand-total').textContent=money(t.total);if($('deductions-total'))$('deductions-total').textContent='− '+money(t.deductions);editDraft.lines.forEach((l,i)=>{if($('line-total-'+i))$('line-total-'+i).textContent=money(Number(l.qty)*Number(l.rate))})}}});
 document.addEventListener('change',e=>{if(e.target.id==='department'){dept=e.target.value;editDraft=null;errors=[];if(route==='dashboard')render();else if(location.hash!=='#home')location.hash='home';else{route='home';render()}}if(e.target.id==='filter-project'){filter.project=e.target.value;if(filter.type!=='all'&&!projectAllows(filter.type,filter.project)&&filter.project!=='all')filter.type='all';listPage()}if(e.target.id==='filter-status'){filter.status=e.target.value;updateList()}});
 document.addEventListener('submit',e=>{e.preventDefault();const form=e.target,data=new FormData(form),r=currentRecord();if(form.id==='new-form'){if(!projectAllows(data.get('type'),data.get('project'))){notify('Select a PSS Project for this record type.');return}const n=makeRecord(data.get('type'),data.get('project'));n.title=SCHEMAS[n.type].label;if(n.type==='inspection'&&form.dataset.test)n.fields.testType=form.dataset.test;records.push(n);closeModal();location.hash='record/'+n.id;notify('Draft created. Select Edit details to complete the form.')}if(form.id==='document-form'){const state=data.get('state'),ref=data.get('reference').trim();if(state!=='Missing'&&!ref){$('document-error').textContent='Enter a reference before marking evidence received or accepted.';return}const d=r.docs[Number(form.dataset.index)];d.state=state;d.reference=ref;r.history.push({time:stamp(),actor:r.owner,action:d.label+': '+state+(ref?' · '+ref:'')});closeModal();errors=[];render();notify('Document check updated.')}if(form.id==='return-form'){errors=transition(r,'return',data.get('reason'));if(!errors.length){closeModal();render();notify('Record returned with comments.')}}if(form.id==='comment-form'){const comment=data.get('comment').trim();if(!comment)return;r.history.push({time:stamp(),actor:r.owner,action:'Comment: '+comment});recordPage(r.id);notify('Comment added.')}});
-$('department').innerHTML='<option value="all">All departments</option>'+DEPARTMENTS.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
-window.addEventListener('hashchange',navigate);navigate();
+const PERSONA_LIST = [
+	{ id: 'Administrator', label: 'Administrator (All Access)', dept: 'all' },
+	{ id: 'Commercial', label: 'Commercial Manager', dept: '0' },
+	{ id: 'Projects', label: 'Project Manager', dept: '1' },
+	{ id: 'Estimation', label: 'Estimation Engineer', dept: '2' },
+	{ id: 'Procurement', label: 'Procurement Lead', dept: '3' },
+	{ id: 'Logistics', label: 'Logistics Manager', dept: '4' },
+	{ id: 'Quality', label: 'QA/QC Lead', dept: '5' },
+	{ id: 'HR & Access', label: 'HR Manager', dept: '6' },
+	{ id: 'Service & Workshop', label: 'Workshop Manager', dept: '7' },
+	{ id: 'Finance', label: 'Finance Controller', dept: '8' },
+	{ id: 'Management', label: 'Executive Director', dept: '9' },
+	{ id: 'Contracts', label: 'Contracts Manager', dept: '10' }
+];
+if ($('persona-selector')) {
+	$('persona-selector').innerHTML = PERSONA_LIST.map(p => `<option value="${p.id}" ${p.id === (window.currentPersona || 'Administrator') ? 'selected' : ''}>${p.label}</option>`).join('');
+	$('persona-selector').addEventListener('change', async (e) => {
+		const val = e.target.value;
+		window.currentPersona = val;
+		if (window.frappeDocApi && window.frappeDocApi.setActivePersona) {
+			await window.frappeDocApi.setActivePersona(val);
+		}
+		const p = PERSONA_LIST.find(x => x.id === val);
+		if (p && $('department')) {
+			$('department').value = p.dept;
+			dept = p.dept;
+		}
+		if (route.startsWith('record/')) {
+			if (window.erpDocumentEngine && window.erpDocumentEngine.loadDocument) {
+				window.erpDocumentEngine.loadDocument(route.slice(7));
+			}
+		} else {
+			render();
+		}
+		notify('Switched persona to ' + val);
+	});
+}
+if ($('department')) {
+	$('department').innerHTML = '<option value="all">All departments</option>' + DEPARTMENTS.map((d, i) => `<option value="${i}">${d}</option>`).join('');
+}
+window.addEventListener('hashchange', navigate); navigate();
 
 
 

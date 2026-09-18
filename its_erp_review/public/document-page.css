@@ -1,31 +1,408 @@
-/* Shared paper standard for current and future company document templates. */
-@page { size: A4 portrait; margin: 10mm; }
-/* Explicit template colours override general application/table styles. */
-.tax-sheet { color: #10366f; background-color: #ffffff; }
-.tax-sheet .tax-lines thead th,
-.tax-sheet .tax-total th,
-.tax-sheet .tax-total td,
-.tax-sheet h3 { background-color: #10366f; color: #ffffff; }
-.tax-sheet th, .tax-sheet .tax-sign h4 { background-color: #e5e8ec; color: #10366f; }
-.tax-sheet .tax-lines thead th,
-.tax-sheet .tax-total th { background-color: #10366f; color: #ffffff; }
-.tax-sheet footer { border-top-color: #f18716; }
-@media screen {
- .tax-print-view #view { overflow-x: auto; }
- .tax-sheet, .document-sheet {
-  box-sizing: border-box; width: 210mm; max-width: none;
-  min-height: 297mm; padding: 10mm; margin: 20px auto;
- }
+/* Executive Corporate Styles for ITS ERP Document Engine */
+
+/* ── WORKFLOW STEPPER ─────────────────────────────────────────── */
+.doc-workflow-bar {
+	background: #FFFFFF;
+	border: 1px solid #E2E8F0;
+	border-radius: 8px;
+	padding: 16px 20px;
+	margin-bottom: 24px;
+	box-shadow: 0 2px 8px rgba(0, 43, 73, 0.04);
 }
-@media print {
- .tax-sheet, .tax-sheet *, .document-sheet, .document-sheet * {
-  -webkit-print-color-adjust: exact !important;
-  print-color-adjust: exact !important;
- }
- body.tax-print-view .tax-sheet, .document-sheet {
-  box-sizing: border-box; width: 190mm; max-width: 100%;
-  min-height: 0; margin: 0; padding: 0;
- }
- .tax-sheet tr, .document-sheet tr { break-inside: avoid; }
- .tax-sheet thead, .document-sheet thead { display: table-header-group; }
+
+.workflow-stepper {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	position: relative;
+}
+
+.workflow-stepper::before {
+	content: '';
+	position: absolute;
+	top: 20px;
+	left: 30px;
+	right: 30px;
+	height: 3px;
+	background: #E2E8F0;
+	z-index: 1;
+}
+
+.stepper-step {
+	position: relative;
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	flex: 1;
+}
+
+.stepper-node {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: #FFFFFF;
+	border: 3px solid #CBD5E1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 14px;
+	font-weight: 700;
+	color: #64748B;
+	transition: all 0.25s ease;
+	margin-bottom: 8px;
+}
+
+.stepper-step.completed .stepper-node {
+	background: #16A34A;
+	border-color: #16A34A;
+	color: #FFFFFF;
+}
+
+.stepper-step.active .stepper-node {
+	background: #005A9C;
+	border-color: #002B49;
+	color: #FFFFFF;
+	box-shadow: 0 0 0 4px rgba(0, 90, 156, 0.2);
+	animation: pulse-ring 2s infinite;
+}
+
+.stepper-step.returned .stepper-node {
+	background: #DC2626;
+	border-color: #991B1B;
+	color: #FFFFFF;
+	box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.2);
+}
+
+@keyframes pulse-ring {
+	0% { box-shadow: 0 0 0 0 rgba(0, 90, 156, 0.4); }
+	70% { box-shadow: 0 0 0 8px rgba(0, 90, 156, 0); }
+	100% { box-shadow: 0 0 0 0 rgba(0, 90, 156, 0); }
+}
+
+.stepper-label {
+	font-size: 12px;
+	font-weight: 700;
+	color: #1E293B;
+	margin-bottom: 2px;
+}
+
+.stepper-step.active .stepper-label {
+	color: #005A9C;
+}
+
+.stepper-step.returned .stepper-label {
+	color: #DC2626;
+}
+
+.stepper-role {
+	font-size: 11px;
+	color: #64748B;
+}
+
+/* ── EXECUTIVE HERO & HEADER ──────────────────────────────────── */
+.doc-hero {
+	background: #FFFFFF;
+	border: 1px solid #E2E8F0;
+	border-top: 4px solid #002B49;
+	border-radius: 8px;
+	padding: 20px 24px;
+	margin-bottom: 24px;
+	box-shadow: 0 2px 10px rgba(0, 43, 73, 0.05);
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	flex-wrap: wrap;
+	gap: 16px;
+}
+
+.doc-hero-main {
+	flex: 1;
+	min-width: 280px;
+}
+
+.doc-tag-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.doc-type-tag {
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.8px;
+	text-transform: uppercase;
+	color: #002B49;
+	background: #EBF3FA;
+	padding: 3px 10px;
+	border-radius: 4px;
+	border: 1px solid #C8DFF0;
+}
+
+.doc-ref-id {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-size: 13px;
+	font-weight: 700;
+	color: #005A9C;
+}
+
+.doc-hero-title {
+	font-size: 24px;
+	font-weight: 800;
+	color: #0F172A;
+	margin: 0 0 6px 0;
+	line-height: 1.25;
+}
+
+.doc-hero-sub {
+	font-size: 13px;
+	color: #64748B;
+	margin: 0;
+}
+
+.doc-hero-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+/* ── STATUS BADGES ────────────────────────────────────────────── */
+.status-pill-lg {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 14px;
+	border-radius: 20px;
+	font-size: 12px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.4px;
+}
+
+.status-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+}
+
+.status-draft { background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; }
+.status-draft .status-dot { background: #94A3B8; }
+
+.status-review { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+.status-review .status-dot { background: #3B82F6; animation: pulse-ring 2s infinite; }
+
+.status-approved { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
+.status-approved .status-dot { background: #22C55E; }
+
+.status-returned { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
+.status-returned .status-dot { background: #EF4444; }
+
+.status-submitted { background: #FAF5FF; color: #6B21A8; border: 1px solid #E9D5FF; }
+.status-submitted .status-dot { background: #A855F7; }
+
+/* ── FORM SECTION CARDS ───────────────────────────────────────── */
+.doc-section-card {
+	background: #FFFFFF;
+	border: 1px solid #E2E8F0;
+	border-radius: 8px;
+	padding: 20px 24px;
+	margin-bottom: 20px;
+	box-shadow: 0 2px 6px rgba(0, 43, 73, 0.03);
+}
+
+.doc-section-card h3.section-header {
+	font-size: 14px;
+	font-weight: 800;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+	color: #002B49;
+	margin: 0 0 16px 0;
+	padding-bottom: 8px;
+	border-bottom: 1.5px solid #E2E8F0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.doc-fields-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 16px 20px;
+}
+
+.doc-field-item {
+	display: flex;
+	flex-direction: column;
+}
+
+.doc-field-label {
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+	color: #64748B;
+	margin-bottom: 4px;
+}
+
+.doc-field-value {
+	font-size: 13px;
+	font-weight: 600;
+	color: #0F172A;
+	min-height: 22px;
+}
+
+.doc-field-value a {
+	color: #005A9C;
+	text-decoration: none;
+	font-weight: 700;
+}
+
+.doc-field-value a:hover {
+	text-decoration: underline;
+}
+
+/* ── FORM CONTROLS IN EDIT MODE ───────────────────────────────── */
+.doc-input-wrap input,
+.doc-input-wrap select,
+.doc-input-wrap textarea {
+	width: 100%;
+	padding: 8px 12px;
+	font-size: 13px;
+	font-weight: 500;
+	color: #0F172A;
+	background: #FFFFFF;
+	border: 1.5px solid #CBD5E1;
+	border-radius: 6px;
+	transition: all 0.2s ease;
+	box-sizing: border-box;
+}
+
+.doc-input-wrap input:focus,
+.doc-input-wrap select:focus,
+.doc-input-wrap textarea:focus {
+	outline: none;
+	border-color: #005A9C;
+	box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.15);
+}
+
+.doc-input-wrap textarea {
+	min-height: 80px;
+	resize: vertical;
+}
+
+/* ── CHILD TABLES LINE ITEMS GRID ─────────────────────────────── */
+.doc-line-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 12px 0 16px 0;
+	font-size: 12px;
+}
+
+.doc-line-table th {
+	background: #002B49;
+	color: #FFFFFF;
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	padding: 10px 12px;
+	text-align: left;
+	border: 1px solid #002B49;
+}
+
+.doc-line-table th.num,
+.doc-line-table td.num {
+	text-align: right;
+}
+
+.doc-line-table td {
+	padding: 8px 12px;
+	border: 1px solid #E2E8F0;
+	color: #1E293B;
+	vertical-align: middle;
+}
+
+.doc-line-table tbody tr:nth-child(even) {
+	background: #F8FAFC;
+}
+
+.doc-line-table tbody tr:hover {
+	background: #F1F5F9;
+}
+
+.doc-line-table input {
+	width: 100%;
+	padding: 6px 8px;
+	font-size: 12px;
+	border: 1px solid #CBD5E1;
+	border-radius: 4px;
+	box-sizing: border-box;
+}
+
+.doc-line-table input:focus {
+	border-color: #005A9C;
+	outline: none;
+}
+
+/* ── FINANCIAL SUMMARY CARD ──────────────────────────────────── */
+.doc-financial-summary {
+	background: #F8FAFC;
+	border: 1.5px solid #CBD5E1;
+	border-radius: 8px;
+	padding: 16px 20px;
+	max-width: 380px;
+	margin-left: auto;
+	margin-top: 16px;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.doc-sum-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 6px 0;
+	font-size: 13px;
+	color: #475569;
+}
+
+.doc-sum-row.grand {
+	border-top: 2px solid #002B49;
+	margin-top: 8px;
+	padding-top: 10px;
+	font-size: 16px;
+	font-weight: 800;
+	color: #002B49;
+}
+
+/* ── RETURN DIALOG MODAL ─────────────────────────────────────── */
+.return-modal-box {
+	max-width: 480px;
+	padding: 10px;
+}
+
+.return-modal-box h3 {
+	font-size: 18px;
+	font-weight: 800;
+	color: #991B1B;
+	margin: 0 0 8px 0;
+}
+
+.return-modal-box p {
+	font-size: 13px;
+	color: #475569;
+	margin-bottom: 16px;
+}
+
+.return-modal-box textarea {
+	width: 100%;
+	min-height: 110px;
+	padding: 10px 12px;
+	border: 1.5px solid #CBD5E1;
+	border-radius: 6px;
+	box-sizing: border-box;
+	font-size: 13px;
+	margin-bottom: 16px;
 }
