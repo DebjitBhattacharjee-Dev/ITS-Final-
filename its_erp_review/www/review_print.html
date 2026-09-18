@@ -57,12 +57,18 @@
     z-index: 9999;
     background: #002B49;
     color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     padding: 8px 20px;
     font-size: 13px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .print-controls table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .print-controls table td {
+    vertical-align: middle;
+    padding: 0;
+    border: none;
   }
   .print-controls .brand { font-weight: bold; letter-spacing: 1px; color: #C9A84C; }
   .print-controls button {
@@ -74,7 +80,6 @@
     font-weight: bold;
     font-size: 12px;
     cursor: pointer;
-    transition: background 0.2s;
   }
   .print-controls button:hover { background: #e0c060; }
   .print-controls button.btn-secondary {
@@ -93,8 +98,7 @@
     .print-body {
       padding-top: 55px;
       padding-bottom: 40px;
-      display: flex;
-      justify-content: center;
+      text-align: center;
     }
     .a4-container {
       width: 210mm;
@@ -105,6 +109,17 @@
       margin: 0 auto;
       box-sizing: border-box;
       border-radius: 2px;
+      text-align: left;
+      display: inline-block;
+      position: relative;
+    }
+    header.its-header {
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    footer.its-footer {
+      width: 100%;
+      margin-top: 20px;
     }
   }
 
@@ -124,110 +139,21 @@
       top: 0 !important;
       left: 0 !important;
       right: 0 !important;
+      width: 100% !important;
       height: 36mm !important;
       background: #FFFFFF !important;
       z-index: 9999 !important;
-      border-bottom: 2.5px solid #002B49 !important;
     }
     footer.its-footer {
       position: fixed !important;
       bottom: 0 !important;
       left: 0 !important;
       right: 0 !important;
+      width: 100% !important;
       height: 22mm !important;
       background: #FFFFFF !important;
       z-index: 9999 !important;
     }
-  }
-
-  /* ── ITS HEADER ─────────────────────────────────────────────── */
-  .its-header-wrap {
-    border-bottom: 2.5px solid #002B49;
-    padding-bottom: 10px;
-    margin-bottom: 12px;
-  }
-
-  .header-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .header-table td { vertical-align: middle; }
-
-  .logo-cell {
-    width: 25%;
-    text-align: left;
-  }
-
-  .logo-img {
-    max-height: 75px;
-    max-width: 180px;
-    width: auto;
-    object-fit: contain;
-  }
-
-  .company-cell {
-    width: 45%;
-    text-align: center;
-  }
-
-  .company-title {
-    font-size: 14pt;
-    font-weight: bold;
-    color: #002B49;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-    line-height: 1.2;
-    margin-bottom: 4px;
-  }
-
-  .company-sub {
-    font-size: 9.5pt;
-    font-weight: bold;
-    color: #002B49;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-    margin-bottom: 3px;
-  }
-
-  .company-trn {
-    font-size: 9.5pt;
-    font-weight: bold;
-    color: #002B49;
-  }
-
-  .meta-cell {
-    width: 30%;
-    text-align: right;
-  }
-
-  table.meta-table {
-    border-collapse: collapse;
-    display: inline-table;
-    border: 1px solid #7090A8;
-    min-width: 210px;
-    background: #FFFFFF;
-  }
-
-  table.meta-table td {
-    padding: 5px 10px;
-    border: 1px solid #7090A8;
-    font-size: 8.5pt;
-  }
-
-  table.meta-table td.meta-lbl {
-    background-color: #F0F4F8;
-    font-weight: bold;
-    color: #002B49;
-    text-align: left;
-    white-space: nowrap;
-  }
-
-  table.meta-table td.meta-val {
-    background-color: #FFFFFF;
-    color: #002B49;
-    text-align: right;
-    white-space: nowrap;
   }
 
   /* DOCUMENT TITLE BLOCK */
@@ -335,86 +261,36 @@
     background-color: #FFFFFF;
     margin-top: 0;
   }
-
-  /* ── FOOTER BAR ─────────────────────────────────────────────── */
-  .its-footer-wrap {
-    border-top: 1px solid #CBD5E1;
-    margin-top: 20px;
-    padding-top: 6px;
-  }
-
-  .footer-gold-bar {
-    height: 3px;
-    background-color: #FFC20E;
-    width: 100%;
-    margin-bottom: 6px;
-  }
-
-  .footer-text {
-    font-size: 8pt;
-    color: #475569;
-    text-align: center;
-    line-height: 1.3;
-  }
-
-  .footer-contact { font-weight: bold; color: #002B49; }
 </style>
 </head>
 <body>
 
 <!-- PRINT CONTROLS (hidden when printing) -->
 <div class="print-controls">
-  <span class="brand">ITS — Universal Corporate Print Format</span>
-  <span style="color:#94A3B8; font-size:11px;">{{ doc_title }} &nbsp;|&nbsp; {{ doc.name }}</span>
-  <div>
-    <button class="btn-secondary" style="margin-right: 8px;" onclick="window.open('/api/method/its_erp_review.api.documents.get_document_pdf?doctype={{ doc.doctype|urlencode }}&name={{ doc.name|urlencode }}&view=1', '_blank')">📄 Open in Chrome PDF Viewer (A4)</button>
-    <button onclick="window.print()">🖨 Print / Save PDF</button>
-  </div>
+  <table>
+    <tr>
+      <td style="text-align: left; width: 35%;">
+        <span class="brand">ITS — Universal Corporate Print Format</span>
+      </td>
+      <td style="text-align: center; width: 35%; color: #94A3B8; font-size: 11px;">
+        {{ doc_title }} &nbsp;|&nbsp; {{ doc.name }}
+      </td>
+      <td style="text-align: right; width: 30%;">
+        <button class="btn-secondary" style="margin-right: 8px;" onclick="window.open('/api/method/its_erp_review.api.documents.get_document_pdf?doctype={{ doc.doctype|urlencode }}&name={{ doc.name|urlencode }}&view=1', '_blank')">📄 Open in Chrome PDF Viewer (A4)</button>
+        <button onclick="window.print()">🖨 Print / Save PDF</button>
+      </td>
+    </tr>
+  </table>
 </div>
 
 <div class="print-body">
   <div class="a4-container">
 
-  <!-- REPEATING HEADER -->
-  <header class="its-header">
-    <table class="header-table">
-      <tr>
-        <td class="logo-cell">
-          <img src="{{ logo_uri }}" class="logo-img" alt="ITS Logo" />
-        </td>
-        <td class="company-cell">
-          <div class="company-title">INDEPENDENT TECHNICAL<br>SERVICES LLC</div>
-          <div class="company-sub">ABU DHABI, UNITED ARAB EMIRATES</div>
-          <div class="company-trn">TRN: {{ company.tax_id or '100376127500003' }}</div>
-        </td>
-        <td class="meta-cell">
-          <table class="meta-table">
-            <tr>
-              <td class="meta-lbl">Document No.</td>
-              <td class="meta-val">{{ doc.name }}</td>
-            </tr>
-            <tr>
-              <td class="meta-lbl">Revision</td>
-              <td class="meta-val">{{ doc.get('revision') or doc.get('amendment_date') or '0' }}</td>
-            </tr>
-            <tr>
-              <td class="meta-lbl">Issue Date</td>
-              <td class="meta-val">{{ frappe.utils.formatdate(doc.get('transaction_date') or doc.get('posting_date') or doc.creation, 'dd-mm-yyyy') }}</td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </header>
+  <!-- REPEATING HEADER COMPONENT -->
+  {% include 'its_erp_review/templates/print_formats/header.html' %}
 
-  <!-- REPEATING FOOTER -->
-  <footer class="its-footer">
-    <div class="footer-gold-bar"></div>
-    <div class="footer-text">
-      <span class="footer-contact">{{ company.po_box }}</span><br>
-      Tel: {{ company.phone }} | Fax: {{ company.fax }} | Email: {{ company.email }}
-    </div>
-  </footer>
+  <!-- REPEATING FOOTER COMPONENT -->
+  {% include 'its_erp_review/templates/print_formats/footer.html' %}
 
   <!-- MASTER PRINT CONTAINER FOR REPEATING HEADER/FOOTER SPACING -->
   <table class="print-wrapper">

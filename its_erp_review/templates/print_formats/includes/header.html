@@ -1,0 +1,46 @@
+<!-- ITS UNIVERSAL PRINT HEADER COMPONENT -->
+{% set company = company if company is defined else its_print_company(doc) %}
+{% set logo_uri = logo_uri if logo_uri is defined else get_its_logo_data_uri() %}
+
+<header class="its-header">
+  <table class="header-table" style="width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; padding: 0;">
+    <tr>
+      <!-- Column 1: ITS Corporate Logo (Left Aligned) -->
+      <td class="logo-cell" style="width: 25%; text-align: left; vertical-align: middle; padding: 0 10px 0 0;">
+        <img src="{{ logo_uri }}" class="logo-img" alt="ITS Logo" style="max-height: 70px; max-width: 175px; width: auto; height: auto; display: block; margin: 0;" />
+      </td>
+
+      <!-- Column 2: Company Identity & TRN (Center Aligned) -->
+      <td class="company-cell" style="width: 45%; text-align: center; vertical-align: middle; padding: 0 10px;">
+        <div class="company-title" style="font-size: 13pt; font-weight: bold; color: #002B49; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.25; margin: 0 0 3px 0;">
+          INDEPENDENT TECHNICAL<br>SERVICES LLC
+        </div>
+        <div class="company-sub" style="font-size: 8.5pt; font-weight: bold; color: #002B49; letter-spacing: 0.5px; text-transform: uppercase; margin: 0 0 3px 0;">
+          ABU DHABI, UNITED ARAB EMIRATES
+        </div>
+        <div class="company-trn" style="font-size: 8.5pt; font-weight: bold; color: #002B49; margin: 0;">
+          TRN: {{ company.tax_id or '100376127500003' }}
+        </div>
+      </td>
+
+      <!-- Column 3: Document Metadata Box (Right Aligned) -->
+      <td class="meta-cell" style="width: 30%; text-align: right; vertical-align: middle; padding: 0 0 0 10px;">
+        <table class="meta-table" style="border-collapse: collapse; width: 100%; border: 1px solid #7090A8; background: #FFFFFF; font-size: 8pt; margin-left: auto;">
+          <tr>
+            <td class="meta-lbl" style="background-color: #F0F4F8; font-weight: bold; color: #002B49; text-align: left; white-space: nowrap; padding: 4px 8px; border: 1px solid #7090A8; width: 45%;">Document No.</td>
+            <td class="meta-val" style="background-color: #FFFFFF; color: #002B49; text-align: right; white-space: nowrap; padding: 4px 8px; border: 1px solid #7090A8; font-weight: 600;">{{ doc.name }}</td>
+          </tr>
+          <tr>
+            <td class="meta-lbl" style="background-color: #F0F4F8; font-weight: bold; color: #002B49; text-align: left; white-space: nowrap; padding: 4px 8px; border: 1px solid #7090A8;">Revision</td>
+            <td class="meta-val" style="background-color: #FFFFFF; color: #002B49; text-align: right; white-space: nowrap; padding: 4px 8px; border: 1px solid #7090A8; font-weight: 600;">{{ doc.get('revision') or doc.get('amendment_date') or '0' }}</td>
+          </tr>
+          <tr>
+            <td class="meta-lbl" style="background-color: #F0F4F8; font-weight: bold; color: #002B49; text-align: left; white-space: nowrap; padding: 4px 8px; border: 1px solid #7090A8;">Issue Date</td>
+            <td class="meta-val" style="background-color: #FFFFFF; color: #002B49; text-align: right; white-space: nowrap; padding: 4px 8px; border: 1px solid #7090A8; font-weight: 600;">{{ frappe.utils.formatdate(doc.get('transaction_date') or doc.get('posting_date') or doc.creation, 'dd-mm-yyyy') }}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  <div class="header-divider" style="border-bottom: 2.5px solid #002B49; width: 100%; margin-top: 8px; margin-bottom: 0;"></div>
+</header>

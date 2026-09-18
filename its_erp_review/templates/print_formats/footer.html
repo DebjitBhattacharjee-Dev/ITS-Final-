@@ -1,0 +1,14 @@
+<!-- ITS UNIVERSAL PRINT FOOTER COMPONENT -->
+{% set company = company if company is defined else its_print_company(doc) %}
+
+<footer class="its-footer">
+  <div class="footer-gold-bar" style="height: 3px; background-color: #FFC20E; width: 100%; margin: 0 0 6px 0;"></div>
+  <table class="footer-table" style="width: 100%; border-collapse: collapse; margin: 0; padding: 0;">
+    <tr>
+      <td style="text-align: center; font-size: 8pt; color: #475569; line-height: 1.4; padding: 2px 0;">
+        <span class="footer-contact" style="font-weight: bold; color: #002B49;">{{ company.po_box }}</span><br>
+        Tel: {{ company.phone }} &nbsp;|&nbsp; Fax: {{ company.fax }} &nbsp;|&nbsp; Email: {{ company.email }}
+      </td>
+    </tr>
+  </table>
+</footer>
