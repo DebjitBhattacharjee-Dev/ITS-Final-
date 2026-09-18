@@ -1,13 +1,6 @@
 <template>
   <header class="h-12 bg-white border-b border-slate-200 px-4 flex items-center justify-between text-sm text-slate-700 select-none z-30 shadow-2xs">
     <div class="flex items-center space-x-3 shrink-0">
-      <button 
-        @click="navStore.toggleSidebar" 
-        class="p-1 hover:bg-blue-50 rounded text-slate-600 hover:text-blue-600 transition-colors"
-        title="Toggle Sidebar"
-      >
-        <Menu class="w-4 h-4" />
-      </button>
       <div class="flex items-center space-x-2.5 font-medium tracking-tight">
         <img src="/images/its_logo.png" alt="ITS" class="h-6 w-auto object-contain" />
         <span class="text-slate-900 font-bold hidden sm:inline">ITS Project Operations</span>
@@ -18,9 +11,6 @@
     <Awesomebar />
 
     <div class="flex items-center space-x-4 shrink-0">
-      <span class="hidden md:inline-block text-slate-600 font-medium text-xs">Independent Technical Services</span>
-      <div class="h-4 w-px bg-slate-200 hidden md:block"></div>
-      
       <div class="relative flex items-center space-x-2">
         <div class="w-6 h-6 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 font-semibold text-xs">
           {{ userInitials }}
@@ -40,7 +30,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Menu, LogOut } from 'lucide-vue-next'
+import { LogOut } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useNavigationStore } from '../../stores/navigation'
 import Awesomebar from './Awesomebar.vue'

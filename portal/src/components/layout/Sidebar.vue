@@ -16,10 +16,6 @@
     >
       <div class="p-3.5 border-b border-slate-200 flex items-center justify-between">
         <div class="flex items-center space-x-2">
-          <img src="/images/its_logo.png" alt="ITS" class="h-5 w-auto object-contain" />
-          <span class="text-xs font-bold tracking-wider text-slate-700 uppercase">
-            WORKSPACES
-          </span>
           <router-link 
             to="/portal/dashboard"
             @click="navStore.closeSidebar"
@@ -29,13 +25,10 @@
           >
             <Home class="w-4 h-4" />
           </router-link>
+          <span class="text-xs font-bold tracking-wider text-slate-700 uppercase">
+            WORKSPACES
+          </span>
         </div>
-        <button 
-          @click="navStore.closeSidebar"
-          class="p-1 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded transition-colors"
-        >
-          <X class="w-4 h-4" />
-        </button>
       </div>
 
       <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-1.5">
@@ -70,7 +63,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { X, Home } from 'lucide-vue-next'
+import { Home } from 'lucide-vue-next'
 import { useNavigationStore } from '../../stores/navigation'
 import { usePermissionsStore } from '../../stores/permissions'
 
