@@ -1206,438 +1206,101 @@ def get_document_print(doctype=None, name=None, print_format=None):
 	detail = get_document_detail(real_doctype, name)
 
 	# Try native print format first if specified
-	native_html = None
 	if print_format and print_format != "Standard":
 		try:
 			native_html = frappe.get_print(real_doctype, name, print_format=print_format)
+			if native_html:
+				return {"html": native_html, "doctype": real_doctype, "name": name}
 		except Exception:
-			native_html = None
+			pass
 
-	if native_html:
-		return {"html": native_html, "doctype": real_doctype, "name": name}
+	from its_erp_review.utils.print_helpers import (
+		its_print_company,
+		get_its_logo_data_uri,
+		get_its_doctype_title,
+		get_its_doc_items,
+		get_its_doc_totals,
+		get_its_field_groups,
+		get_its_child_tables,
+	)
 
-	# Render Executive ITS Corporate Print Format
-	title_text = detail.get("title") or doc.name
-	doc_status = detail.get("status") or "Draft"
-	category = getattr(doc, "category", "") or real_doctype
-	project_id = getattr(doc, "project_id", "") or getattr(doc, "project", "") or "ITS-024"
-	creation_date = str(doc.creation)[:10]
+	context = {
+		"doc": doc,
+		"company": its_print_company(doc),
+		"logo_uri": get_its_logo_data_uri(),
+		"doc_title": get_its_doctype_title(doc.doctype),
+		"items": get_its_doc_items(doc),
+		"totals": get_its_doc_totals(doc),
+		"field_groups": get_its_field_groups(doc),
+		"child_tables": get_its_child_tables(doc),
+		"show_controls": True,
+		"frappe": frappe,
+		"_": frappe._,
+	}
 
-	# Extract lines and financials
-	lines = []
-	subtotal = 0.0
-	tax_rate = 5.0
-
-	prototype_data = detail.get("prototype_data", {})
-	if prototype_data and prototype_data.get("lines"):
-		for idx, l in enumerate(prototype_data["lines"], start=1):
-			qty = float(l.get("qty", 1))
-			rate = float(l.get("rate", 0))
-			amt = qty * rate
-			subtotal += amt
-			lines.append({
-				"idx": idx,
-				"code": l.get("code") or "—",
-				"part_no": l.get("partNo") or "—",
-				"description": l.get("description") or "Item Description",
-				"qty": qty,
-				"unit": l.get("unit") or "Nos",
-				"rate": rate,
-				"amount": amt
-			})
-		tax_rate = float(prototype_data.get("taxRate", 5.0))
-	elif detail.get("tables"):
-		# Check any child tables
-		for tbl_name, rows in detail["tables"].items():
-			if rows:
-				for idx, r in enumerate(rows, start=1):
-					qty = float(r.get("qty", 1))
-					rate = float(r.get("rate") or r.get("unit_price") or 0)
-					amt = float(r.get("amount") or (qty * rate))
-					subtotal += amt
-					lines.append({
-						"idx": idx,
-						"code": r.get("item_code") or r.get("code") or "—",
-						"part_no": r.get("part_no") or "—",
-						"description": r.get("item_name") or r.get("description") or "Line Item",
-						"qty": qty,
-						"unit": r.get("uom") or r.get("unit") or "Nos",
-						"rate": rate,
-						"amount": amt
-					})
-				break
-
-	if not lines:
-		lines.append({
-			"idx": 1,
-			"code": getattr(doc, "code", None) or getattr(doc, "reference", None) or doc.name,
-			"part_no": "—",
-			"description": title_text,
-			"qty": 1,
-			"unit": "Set",
-			"rate": subtotal or 185000.0,
-			"amount": subtotal or 185000.0
-		})
-		subtotal = lines[0]["amount"]
-
-	tax_amount = round(subtotal * (tax_rate / 100.0), 2)
-	grand_total = subtotal + tax_amount
-
-	def fmt_money(v):
-		return f"AED {v:,.2f}"
-
-	rows_html = "".join([f"""
-		<tr>
-			<td style="text-align:center; padding:8px; border:1px solid #E2E8F0;">{l['idx']}</td>
-			<td style="padding:8px; border:1px solid #E2E8F0; font-family:monospace; font-weight:600; color:#002B49;">{l['code']}</td>
-			<td style="padding:8px; border:1px solid #E2E8F0;">{l['description']}</td>
-			<td style="text-align:right; padding:8px; border:1px solid #E2E8F0;">{l['qty']:g}</td>
-			<td style="text-align:center; padding:8px; border:1px solid #E2E8F0;">{l['unit']}</td>
-			<td style="text-align:right; padding:8px; border:1px solid #E2E8F0;">{fmt_money(l['rate'])}</td>
-			<td style="text-align:right; padding:8px; border:1px solid #E2E8F0; font-weight:600; color:#002B49;">{fmt_money(l['amount'])}</td>
-		</tr>
-	""" for l in lines])
-
-	customer_name = getattr(doc, "customer", "") or getattr(doc, "customer_name", "") or "Client / Energy Operator"
-	owner_name = getattr(doc, "owner", "Administrator")
-
-	html = f"""<!doctype html>
-<html lang="en">
-<head>
-	<meta charset="utf-8">
-	<title>{doc.name} · {real_doctype}</title>
-	<style>
-		@page {{
-			size: A4;
-			margin: 15mm 15mm 18mm 15mm;
-		}}
-		* {{ box-sizing: border-box; }}
-		body {{
-			font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-			font-size: 11px;
-			color: #1E293B;
-			line-height: 1.45;
-			background: #F1F5F9;
-			margin: 0;
-			padding: 20px 0;
-		}}
-		.a4-sheet {{
-			width: 210mm;
-			min-height: 297mm;
-			margin: 0 auto;
-			background: #FFFFFF;
-			box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-			padding: 16mm 18mm;
-			position: relative;
-		}}
-		@media print {{
-			body {{ background: #FFFFFF; padding: 0; }}
-			.a4-sheet {{
-				box-shadow: none;
-				width: 100%;
-				min-height: auto;
-				padding: 0;
-				margin: 0;
-			}}
-			.no-print {{ display: none !important; }}
-		}}
-		.print-banner {{
-			background: #002B49;
-			color: #FFFFFF;
-			padding: 10px 24px;
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			max-width: 210mm;
-			margin: 0 auto 16px;
-			border-radius: 6px;
-		}}
-		.print-banner button {{
-			background: #005A9C;
-			color: white;
-			border: none;
-			padding: 8px 16px;
-			border-radius: 4px;
-			font-weight: 600;
-			cursor: pointer;
-		}}
-		.corporate-header {{
-			border-bottom: 2.5px solid #002B49;
-			padding-bottom: 12px;
-			margin-bottom: 18px;
-			display: flex;
-			justify-content: space-between;
-			align-items: flex-start;
-		}}
-		.corp-title {{
-			font-size: 16px;
-			font-weight: 800;
-			color: #002B49;
-			letter-spacing: 0.5px;
-		}}
-		.corp-sub {{
-			font-size: 9px;
-			color: #64748B;
-			margin-top: 3px;
-		}}
-		.doc-badge {{
-			text-align: right;
-		}}
-		.doc-type-title {{
-			font-size: 20px;
-			font-weight: 800;
-			color: #002B49;
-			text-transform: uppercase;
-			letter-spacing: 0.5px;
-			margin: 0;
-		}}
-		.doc-id {{
-			font-size: 13px;
-			font-weight: 700;
-			color: #005A9C;
-			margin-top: 2px;
-		}}
-		.status-pill {{
-			display: inline-block;
-			background: #E2E8F0;
-			color: #334155;
-			padding: 3px 8px;
-			border-radius: 12px;
-			font-size: 10px;
-			font-weight: 700;
-			margin-top: 4px;
-			text-transform: uppercase;
-		}}
-		.status-approved {{ background: #DCFCE7; color: #166534; }}
-		.meta-grid {{
-			display: grid;
-			grid-template-columns: 1fr 1fr;
-			gap: 16px;
-			margin-bottom: 20px;
-			background: #F8FAFC;
-			border: 1px solid #E2E8F0;
-			border-radius: 6px;
-			padding: 12px 16px;
-		}}
-		.meta-item {{
-			display: flex;
-			margin-bottom: 4px;
-		}}
-		.meta-label {{
-			width: 110px;
-			color: #64748B;
-			font-weight: 600;
-			font-size: 10px;
-			text-transform: uppercase;
-		}}
-		.meta-val {{
-			font-weight: 600;
-			color: #0F172A;
-		}}
-		table.lines-table {{
-			width: 100%;
-			border-collapse: collapse;
-			margin-bottom: 18px;
-		}}
-		table.lines-table th {{
-			background: #002B49;
-			color: #FFFFFF;
-			font-size: 10px;
-			font-weight: 700;
-			text-transform: uppercase;
-			padding: 8px;
-			border: 1px solid #002B49;
-		}}
-		table.lines-table tr:nth-child(even) {{
-			background: #F8FAFC;
-		}}
-		.totals-area {{
-			display: flex;
-			justify-content: flex-end;
-			margin-bottom: 28px;
-		}}
-		.totals-card {{
-			width: 260px;
-			background: #F8FAFC;
-			border: 1px solid #E2E8F0;
-			border-radius: 6px;
-			padding: 10px 14px;
-		}}
-		.tot-row {{
-			display: flex;
-			justify-content: space-between;
-			margin-bottom: 6px;
-			font-size: 11px;
-		}}
-		.tot-row.grand {{
-			border-top: 1.5px solid #002B49;
-			padding-top: 6px;
-			margin-top: 6px;
-			font-size: 13px;
-			font-weight: 800;
-			color: #002B49;
-		}}
-		.signatures {{
-			display: grid;
-			grid-template-columns: 1fr 1fr;
-			gap: 30px;
-			margin-top: 40px;
-			border-top: 1px solid #E2E8F0;
-			padding-top: 18px;
-		}}
-		.sig-block {{
-			border: 1px dashed #CBD5E1;
-			border-radius: 6px;
-			padding: 12px;
-			background: #FAFAFA;
-		}}
-		.sig-title {{
-			font-weight: 700;
-			color: #002B49;
-			text-transform: uppercase;
-			font-size: 10px;
-			margin-bottom: 8px;
-		}}
-		.sig-line {{
-			margin-top: 36px;
-			border-bottom: 1px solid #94A3B8;
-			display: flex;
-			justify-content: space-between;
-			padding-bottom: 4px;
-			color: #64748B;
-			font-size: 9px;
-		}}
-		.corp-footer {{
-			position: absolute;
-			bottom: 12mm;
-			left: 18mm;
-			right: 18mm;
-			border-top: 1px solid #CBD5E1;
-			padding-top: 8px;
-			display: flex;
-			justify-content: space-between;
-			color: #94A3B8;
-			font-size: 9px;
-		}}
-	</style>
-</head>
-<body>
-	<div class="print-banner no-print">
-		<div>
-			<strong>ITS Corporate Print Format</strong> · {real_doctype} {doc.name}
-		</div>
-		<div>
-			<button onclick="window.print()">Print / Save as PDF</button>
-		</div>
-	</div>
-
-	<div class="a4-sheet">
-		<header class="corporate-header">
-			<div>
-				<div class="corp-title">INDEPENDENT TECHNICAL SERVICES L.L.C.</div>
-				<div class="corp-sub">Engineering · Power Skid Systems · Industrial Automation</div>
-				<div class="corp-sub">Abu Dhabi · United Arab Emirates · TRN: 100234829100003</div>
-			</div>
-			<div class="doc-badge">
-				<h1 class="doc-type-title">{category.upper()}</h1>
-				<div class="doc-id">{doc.name}</div>
-				<span class="status-pill status-approved">{doc_status}</span>
-			</div>
-		</header>
-
-		<section class="meta-grid">
-			<div>
-				<div class="meta-item">
-					<div class="meta-label">Project Ref:</div>
-					<div class="meta-val">{project_id}</div>
-				</div>
-				<div class="meta-item">
-					<div class="meta-label">Document Title:</div>
-					<div class="meta-val">{title_text}</div>
-				</div>
-				<div class="meta-item">
-					<div class="meta-label">Customer / Party:</div>
-					<div class="meta-val">{customer_name}</div>
-				</div>
-			</div>
-			<div>
-				<div class="meta-item">
-					<div class="meta-label">Issue Date:</div>
-					<div class="meta-val">{creation_date}</div>
-				</div>
-				<div class="meta-item">
-					<div class="meta-label">Responsible:</div>
-					<div class="meta-val">{owner_name}</div>
-				</div>
-				<div class="meta-item">
-					<div class="meta-label">Revision:</div>
-					<div class="meta-val">Rev {getattr(doc, 'revision', None) or '01'}</div>
-				</div>
-			</div>
-		</section>
-
-		<table class="lines-table">
-			<thead>
-				<tr>
-					<th style="width:35px">Item</th>
-					<th style="width:120px">Code / Part No</th>
-					<th>Description & Scope</th>
-					<th style="width:60px">Qty</th>
-					<th style="width:50px">Unit</th>
-					<th style="width:105px">Rate (AED)</th>
-					<th style="width:115px">Amount (AED)</th>
-				</tr>
-			</thead>
-			<tbody>
-				{rows_html}
-			</tbody>
-		</table>
-
-		<div class="totals-area">
-			<div class="totals-card">
-				<div class="tot-row">
-					<span>Subtotal</span>
-					<strong>{fmt_money(subtotal)}</strong>
-				</div>
-				<div class="tot-row">
-					<span>VAT ({tax_rate:g}%)</span>
-					<strong>{fmt_money(tax_amount)}</strong>
-				</div>
-				<div class="tot-row grand">
-					<span>Total Amount</span>
-					<span>{fmt_money(grand_total)}</span>
-				</div>
-			</div>
-		</div>
-
-		<section class="signatures">
-			<div class="sig-block">
-				<div class="sig-title">Prepared & Verified By</div>
-				<div style="color:#475569;">{owner_name}</div>
-				<div class="sig-line">
-					<span>Signature / Stamp</span>
-					<span>Date: {creation_date}</span>
-				</div>
-			</div>
-			<div class="sig-block">
-				<div class="sig-title">Authorized Approval</div>
-				<div style="color:#475569;">Commercial / Operations Director</div>
-				<div class="sig-line">
-					<span>Executive Sign-Off</span>
-					<span>Date: {creation_date}</span>
-				</div>
-			</div>
-		</section>
-
-		<footer class="corp-footer">
-			<span>Confidential & Proprietary · Independent Technical Services L.L.C.</span>
-			<span>Doc Ref: {doc.name} · Page 1 of 1</span>
-		</footer>
-	</div>
-</body>
-</html>"""
-
+	html = frappe.render_template("its_erp_review/templates/print_formats/its_universal_print.html", context)
 	return {"html": html, "doctype": real_doctype, "name": name}
+
+@frappe.whitelist(allow_guest=True)
+def get_document_pdf(doctype=None, name=None, view=0, download=0, print_format=None):
+	"""
+	Generates and returns high-fidelity A4 PDF for a real ERPNext document.
+	"""
+	user = frappe.session.user
+	if user == "Guest":
+		frappe.throw(_("Authentication required"), frappe.AuthenticationError)
+
+	real_doctype = resolve_target_doctype(doctype, name)
+
+	if not frappe.has_permission(real_doctype, "read", doc=name) and not frappe.has_permission(real_doctype, "print", doc=name):
+		frappe.throw(_("Access Denied: You do not have permission to print {0} {1}").format(real_doctype, name), frappe.PermissionError)
+
+	doc = frappe.get_doc(real_doctype, name)
+
+	from its_erp_review.utils.print_helpers import (
+		its_print_company,
+		get_its_logo_data_uri,
+		get_its_doctype_title,
+		get_its_doc_items,
+		get_its_doc_totals,
+		get_its_field_groups,
+		get_its_child_tables,
+	)
+
+	context = {
+		"doc": doc,
+		"company": its_print_company(doc),
+		"logo_uri": get_its_logo_data_uri(),
+		"doc_title": get_its_doctype_title(doc.doctype),
+		"items": get_its_doc_items(doc),
+		"totals": get_its_doc_totals(doc),
+		"field_groups": get_its_field_groups(doc),
+		"child_tables": get_its_child_tables(doc),
+		"show_controls": False,
+		"frappe": frappe,
+		"_": frappe._,
+	}
+
+	html = frappe.render_template("its_erp_review/templates/print_formats/its_universal_print.html", context)
+
+	from frappe.utils.pdf import get_pdf
+	opts = {
+		"quiet": "",
+		"margin-top": "8mm",
+		"margin-bottom": "8mm",
+		"margin-left": "10mm",
+		"margin-right": "10mm",
+		"page-size": "A4"
+	}
+	pdf_bytes = get_pdf(html, options=opts)
+
+	frappe.response.filename = f"{real_doctype}_{name}.pdf"
+	frappe.response.filecontent = pdf_bytes
+	frappe.response.type = "pdf"
+	if int(view or 0):
+		frappe.response.display_content_as = "inline"
+	else:
+		frappe.response.display_content_as = "attachment"
 
 @frappe.whitelist(allow_guest=True)
 def get_link_options(doctype=None, txt=""):

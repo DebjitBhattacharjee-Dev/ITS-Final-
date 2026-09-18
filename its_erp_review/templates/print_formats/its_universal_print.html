@@ -1,0 +1,687 @@
+{% set company = company if company is defined else its_print_company(doc) %}
+{% set logo_uri = logo_uri if logo_uri is defined else get_its_logo_data_uri() %}
+{% set doc_title = doc_title if doc_title is defined else get_its_doctype_title(doc.doctype) %}
+{% set items = items if items is defined else get_its_doc_items(doc) %}
+{% set totals = totals if totals is defined else get_its_doc_totals(doc) %}
+{% set field_groups = field_groups if field_groups is defined else get_its_field_groups(doc) %}
+{% set child_tables = child_tables if child_tables is defined else get_its_child_tables(doc) %}
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>{{ doc_title }} — {{ doc.name }}</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    color: #1E293B;
+    line-height: 1.4;
+    margin: 0;
+    padding: 0;
+    background-color: #FFFFFF;
+  }
+
+  /* PRINT WRAPPER TABLE FOR REPEATING SPACING */
+  table.print-wrapper {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  table.print-wrapper > thead > tr > td {
+    height: 38mm;
+    padding: 0;
+    margin: 0;
+    border: none;
+  }
+
+  table.print-wrapper > tfoot > tr > td {
+    height: 24mm;
+    padding: 0;
+    margin: 0;
+    border: none;
+  }
+
+  table.print-wrapper > tbody > tr > td {
+    padding: 0;
+    margin: 0;
+    border: none;
+    vertical-align: top;
+  }
+
+  /* ── PRINT CONTROLS (hidden when printing) ─────────────────── */
+  .print-controls {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: #002B49;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
+    font-size: 13px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .print-controls .brand { font-weight: bold; letter-spacing: 1px; color: #C9A84C; }
+  .print-controls button {
+    background: #C9A84C;
+    color: #002B49;
+    border: none;
+    padding: 7px 18px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .print-controls button:hover { background: #e0c060; }
+  .print-controls button.btn-secondary {
+    background: #1E3A8A;
+    color: #FFFFFF;
+    border: 1px solid #3B82F6;
+  }
+  .print-controls button.btn-secondary:hover { background: #2563EB; }
+
+  @media screen {
+    body {
+      background-color: #475569;
+      margin: 0;
+      padding: 0;
+    }
+    .print-body {
+      padding-top: 55px;
+      padding-bottom: 40px;
+      display: flex;
+      justify-content: center;
+    }
+    .a4-container {
+      width: 210mm;
+      min-height: 297mm;
+      background: #FFFFFF;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      padding: 12mm 15mm;
+      margin: 0 auto;
+      box-sizing: border-box;
+      border-radius: 2px;
+    }
+  }
+
+  @media print {
+    .print-controls { display: none !important; }
+    body { background-color: #FFFFFF !important; }
+    .print-body { padding-top: 0 !important; }
+    .a4-container {
+      width: 100% !important;
+      min-height: auto !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    header.its-header {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 36mm !important;
+      background: #FFFFFF !important;
+      z-index: 9999 !important;
+      border-bottom: 2.5px solid #002B49 !important;
+    }
+    footer.its-footer {
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 22mm !important;
+      background: #FFFFFF !important;
+      z-index: 9999 !important;
+    }
+  }
+
+  /* ── ITS HEADER ─────────────────────────────────────────────── */
+  .its-header-wrap {
+    border-bottom: 2.5px solid #002B49;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+  }
+
+  .header-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .header-table td { vertical-align: middle; }
+
+  .logo-cell {
+    width: 25%;
+    text-align: left;
+  }
+
+  .logo-img {
+    max-height: 75px;
+    max-width: 180px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .company-cell {
+    width: 45%;
+    text-align: center;
+  }
+
+  .company-title {
+    font-size: 14pt;
+    font-weight: bold;
+    color: #002B49;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  .company-sub {
+    font-size: 9.5pt;
+    font-weight: bold;
+    color: #002B49;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .company-trn {
+    font-size: 9.5pt;
+    font-weight: bold;
+    color: #002B49;
+  }
+
+  .meta-cell {
+    width: 30%;
+    text-align: right;
+  }
+
+  table.meta-table {
+    border-collapse: collapse;
+    display: inline-table;
+    border: 1px solid #7090A8;
+    min-width: 210px;
+    background: #FFFFFF;
+  }
+
+  table.meta-table td {
+    padding: 5px 10px;
+    border: 1px solid #7090A8;
+    font-size: 8.5pt;
+  }
+
+  table.meta-table td.meta-lbl {
+    background-color: #F0F4F8;
+    font-weight: bold;
+    color: #002B49;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  table.meta-table td.meta-val {
+    background-color: #FFFFFF;
+    color: #002B49;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* DOCUMENT TITLE BLOCK */
+  .doc-title-block {
+    text-align: center;
+    margin-top: 4px;
+    margin-bottom: 10px;
+  }
+
+  .doc-title-text {
+    font-size: 13.5pt;
+    font-weight: bold;
+    color: #002B49;
+    letter-spacing: 0.3px;
+  }
+
+  .doc-subtitle-text {
+    font-size: 8.5pt;
+    font-style: italic;
+    color: #475569;
+    margin-top: 2px;
+  }
+
+  /* DOCUMENT GRID TABLE */
+  table.doc-grid-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+    font-size: 8.5pt;
+  }
+
+  table.doc-grid-table td {
+    padding: 5px 8px;
+    border: 1px solid #CBD5E1;
+    vertical-align: top;
+  }
+
+  table.doc-grid-table td.lbl {
+    background-color: #F0F4F8;
+    font-weight: bold;
+    color: #002B49;
+    width: 22%;
+  }
+
+  table.doc-grid-table td.val {
+    background-color: #FFFFFF;
+    color: #0F172A;
+    width: 28%;
+  }
+
+  /* SECTION BARS */
+  .section-bar {
+    background-color: #002B49;
+    color: #FFFFFF;
+    font-weight: bold;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 5px 8px;
+    margin-top: 10px;
+    margin-bottom: 0;
+  }
+
+  /* TABLES */
+  table.its-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 8.5pt;
+  }
+
+  table.its-table th {
+    background-color: #002B49;
+    color: #FFFFFF;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 8pt;
+    padding: 6px 8px;
+    border: 1px solid #002B49;
+    text-align: left;
+  }
+
+  table.its-table td {
+    padding: 6px 8px;
+    border: 1px solid #CBD5E1;
+    vertical-align: top;
+  }
+
+  table.its-table tr:nth-child(even) td {
+    background-color: #F8FAFC;
+  }
+
+  .text-center { text-align: center; }
+  .text-right { text-align: right; }
+  .text-left { text-align: left; }
+  .font-bold { font-weight: bold; }
+
+  /* NOTES BOX */
+  .notes-box {
+    border: 1px solid #CBD5E1;
+    padding: 8px 12px;
+    font-size: 8pt;
+    color: #334155;
+    background-color: #FFFFFF;
+    margin-top: 0;
+  }
+
+  /* ── FOOTER BAR ─────────────────────────────────────────────── */
+  .its-footer-wrap {
+    border-top: 1px solid #CBD5E1;
+    margin-top: 20px;
+    padding-top: 6px;
+  }
+
+  .footer-gold-bar {
+    height: 3px;
+    background-color: #FFC20E;
+    width: 100%;
+    margin-bottom: 6px;
+  }
+
+  .footer-text {
+    font-size: 8pt;
+    color: #475569;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .footer-contact { font-weight: bold; color: #002B49; }
+</style>
+</head>
+<body>
+
+{% if show_controls %}
+<!-- PRINT CONTROLS (hidden when printing) -->
+<div class="print-controls">
+  <span class="brand">ITS — Universal Corporate Print Format</span>
+  <span style="color:#94A3B8; font-size:11px;">{{ doc_title }} &nbsp;|&nbsp; {{ doc.name }}</span>
+  <div>
+    <button class="btn-secondary" style="margin-right: 8px;" onclick="window.open('/api/method/its_erp_review.api.documents.get_document_pdf?doctype={{ doc.doctype|urlencode }}&name={{ doc.name|urlencode }}&view=1', '_blank')">📄 Open in Chrome PDF Viewer (A4)</button>
+    <button onclick="window.print()">🖨 Print / Save PDF</button>
+  </div>
+</div>
+{% endif %}
+
+<div class="print-body">
+  <div class="a4-container">
+
+  <!-- REPEATING HEADER -->
+  <header class="its-header">
+    <table class="header-table">
+      <tr>
+        <td class="logo-cell">
+          <img src="{{ logo_uri }}" class="logo-img" alt="ITS Logo" />
+        </td>
+        <td class="company-cell">
+          <div class="company-title">INDEPENDENT TECHNICAL<br>SERVICES LLC</div>
+          <div class="company-sub">ABU DHABI, UNITED ARAB EMIRATES</div>
+          <div class="company-trn">TRN: {{ company.tax_id or '100376127500003' }}</div>
+        </td>
+        <td class="meta-cell">
+          <table class="meta-table">
+            <tr>
+              <td class="meta-lbl">Document No.</td>
+              <td class="meta-val">{{ doc.name }}</td>
+            </tr>
+            <tr>
+              <td class="meta-lbl">Revision</td>
+              <td class="meta-val">{{ doc.get('revision') or doc.get('amendment_date') or '0' }}</td>
+            </tr>
+            <tr>
+              <td class="meta-lbl">Issue Date</td>
+              <td class="meta-val">{{ frappe.utils.formatdate(doc.get('transaction_date') or doc.get('posting_date') or doc.creation, 'dd-mm-yyyy') }}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </header>
+
+  <!-- REPEATING FOOTER -->
+  <footer class="its-footer">
+    <div class="footer-gold-bar"></div>
+    <div class="footer-text">
+      <span class="footer-contact">{{ company.po_box }}</span><br>
+      Tel: {{ company.phone }} | Fax: {{ company.fax }} | Email: {{ company.email }}
+    </div>
+  </footer>
+
+  <!-- MASTER PRINT CONTAINER FOR REPEATING HEADER/FOOTER SPACING -->
+  <table class="print-wrapper">
+    <thead>
+      <tr>
+        <td><!-- Spacer to prevent content from overlapping fixed header --></td>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <main>
+
+  <!-- ══ DOCUMENT TITLE BLOCK ═══════════════════════════════════ -->
+  <div class="doc-title-block">
+    <div class="doc-title-text">
+      {% if doc.doctype == 'Quotation' %}Quotation / Commercial Proposal
+      {% else %}{{ doc_title }}
+      {% endif %}
+    </div>
+    <div class="doc-subtitle-text">
+      {% if doc.doctype == 'Quotation' %}
+        We are pleased to submit our commercial proposal for your review.
+      {% elif doc.get('project_name') or doc.get('project') %}
+        Project: {{ doc.get('project_name') or doc.get('project') }}
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ══ DOCUMENT REFERENCE GRID ═════════════════════════════════ -->
+  <table class="doc-grid-table">
+    <tr>
+      <td class="lbl">{% if doc.doctype == 'Quotation' %}Quotation No.{% else %}Document No.{% endif %}</td>
+      <td class="val">{{ doc.name }}</td>
+      <td class="lbl">Date</td>
+      <td class="val">{{ frappe.utils.formatdate(doc.get('transaction_date') or doc.get('posting_date') or doc.creation, 'dd-mm-yyyy') }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Customer PO No.</td>
+      <td class="val">{{ doc.get('po_no') or '-' }}</td>
+      <td class="lbl">Agreement No.</td>
+      <td class="val">{{ doc.get('agreement_no') or '-' }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Inquiry / RFQ No.</td>
+      <td class="val">{{ doc.get('inquiry_no') or doc.get('rfq_no') or '-' }}</td>
+      <td class="lbl">Contract No.</td>
+      <td class="val">{{ doc.get('contract_no') or doc.get('project') or '-' }}</td>
+    </tr>
+  </table>
+
+  <!-- ══ CUSTOMER / SUPPLIER DETAILS ═════════════════════════════ -->
+  <div class="section-bar">
+    {% if doc.get('supplier') or doc.get('supplier_name') %}SUPPLIER DETAILS{% else %}CUSTOMER DETAILS{% endif %}
+  </div>
+  <table class="doc-grid-table" style="margin-top: 0;">
+    <tr>
+      <td class="lbl">{% if doc.get('supplier') or doc.get('supplier_name') %}Supplier Name{% else %}Customer Name{% endif %}</td>
+      <td class="val" colspan="3">{{ doc.get('customer_name') or doc.get('customer') or doc.get('supplier_name') or doc.get('supplier') or '-' }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Address</td>
+      <td class="val" colspan="3">{{ (doc.get('address_display') or doc.get('shipping_address') or '-')|replace('\n', '<br>')|safe }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Customer TRN</td>
+      <td class="val">{{ doc.get('tax_id') or doc.get('customer_tax_id') or '-' }}</td>
+      <td class="lbl">Contact Person</td>
+      <td class="val">{{ doc.get('contact_display') or doc.get('contact_person') or '-' }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Valid Till</td>
+      <td class="val">{{ frappe.utils.formatdate(doc.valid_till, 'dd-mm-yyyy') if doc.get('valid_till') else '-' }}</td>
+      <td class="lbl">Project / Site</td>
+      <td class="val">{{ doc.get('project_name') or doc.get('project') or '-' }}</td>
+    </tr>
+  </table>
+
+  <!-- ══ TRANSACTION ITEMS TABLE ═════════════════════════════════ -->
+  {% if items and items|length > 0 %}
+    <table class="its-table" style="margin-top: 10px;">
+      <thead>
+        <tr>
+          <th class="text-center" style="width: 5%;">ITEM</th>
+          <th style="width: 15%;">PART NO.</th>
+          <th style="width: 35%;">DESCRIPTION</th>
+          <th class="text-center" style="width: 7%;">QTY</th>
+          <th class="text-center" style="width: 7%;">UOM</th>
+          <th class="text-right" style="width: 14%;">UNIT PRICE</th>
+          <th class="text-right" style="width: 6%;">VAT %</th>
+          <th class="text-right" style="width: 11%;">AMOUNT</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr>
+            <td class="text-center font-bold">{{ item.idx }}</td>
+            <td style="font-family: monospace;">{{ item.part_no or '-' }}</td>
+            <td>
+              <div class="font-bold" style="color: #002B49;">{{ item.item_code }}</div>
+              <div style="font-size: 8pt; color: #475569;">{{ item.description }}</div>
+            </td>
+            <td class="text-center font-bold">{{ "{:,.0f}".format(item.qty) if item.qty == item.qty|int else "{:,.2f}".format(item.qty) }}</td>
+            <td class="text-center">{{ item.uom or 'Nos' }}</td>
+            <td class="text-right">AED {{ "{:,.2f}".format(item.rate) }}</td>
+            <td class="text-right">{{ "{:,.0f}".format(item.tax_rate) }}%</td>
+            <td class="text-right font-bold">AED {{ "{:,.2f}".format(item.amount) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Totals & Words -->
+    {% if totals.grand_total > 0 or doc.get('grand_total') %}
+    <div class="its-summary-wrapper">
+      <table style="width:100%; border-collapse:collapse; margin-top:8px; margin-bottom:12px;">
+        <tr>
+          <td style="width:58%; vertical-align:top; padding-right:12px;">
+            {% if totals.in_words or doc.get('in_words') %}
+            <div class="its-words-card" style="border: 1px solid #CBD5E1; padding: 8px 10px; font-size: 8.5pt; color: #3A5A70; background-color: #FFFFFF; min-height: 38px;">
+              <div class="its-words-lbl" style="font-size: 8pt; color: #64748B; font-style: italic;">Amount in Words:</div>
+              <div class="its-words-val" style="color: #002B49; font-weight: bold;">{{ totals.in_words or doc.get('in_words') }}</div>
+            </div>
+            {% endif %}
+          </td>
+          <td style="width:42%; vertical-align:top;">
+            <table class="grid" style="width:100%; border-collapse:collapse; margin:0;">
+              <tr>
+                <td class="lbl" style="width:45%; font-weight:bold; padding: 4px 8px; border: 1px solid #CBD5E1; background: #F0F4F8; color: #002B49;">Net Total</td>
+                <td class="num" style="padding: 4px 8px; border: 1px solid #CBD5E1; text-align: right; font-weight: bold;">AED {{ "{:,.2f}".format(totals.net_total) }}</td>
+              </tr>
+              {% if totals.vat_amount > 0 %}
+              <tr>
+                <td class="lbl" style="width:45%; font-weight:bold; padding: 4px 8px; border: 1px solid #CBD5E1; background: #F0F4F8; color: #002B49;">VAT (5%)</td>
+                <td class="num" style="padding: 4px 8px; border: 1px solid #CBD5E1; text-align: right; font-weight: bold;">AED {{ "{:,.2f}".format(totals.vat_amount) }}</td>
+              </tr>
+              {% endif %}
+              <tr style="background-color:#002B49; color:#FFFFFF; font-weight:bold;">
+                <td style="color:#FFFFFF; padding: 6px 8px; border: 1px solid #002B49;">Grand Total</td>
+                <td class="num" style="color:#FFFFFF; font-size:9.5pt; text-align: right; padding: 6px 8px; border: 1px solid #002B49;">AED {{ "{:,.2f}".format(totals.grand_total) }}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+    {% endif %}
+  {% else %}
+
+    <!-- General Documents (FAT, Projects, etc.) Grid -->
+    {% if field_groups.col1|length > 0 or field_groups.col2|length > 0 %}
+      <div class="section-bar">DOCUMENT INFORMATION</div>
+      <table class="doc-grid-table" style="margin-top: 0;">
+        {% set max_rows = field_groups.col1|length if field_groups.col1|length > field_groups.col2|length else field_groups.col2|length %}
+        {% for i in range(max_rows) %}
+          {% set f1 = field_groups.col1[i] if i < field_groups.col1|length else None %}
+          {% set f2 = field_groups.col2[i] if i < field_groups.col2|length else None %}
+          <tr>
+            <td class="lbl">{{ f1.label if f1 else '' }}</td>
+            <td class="val">{{ f1.value if f1 else '' }}</td>
+            <td class="lbl">{{ f2.label if f2 else '' }}</td>
+            <td class="val">{{ f2.value if f2 else '' }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% endif %}
+
+    <!-- Child Tables for General Documents -->
+    {% for tbl in child_tables %}
+      <div class="section-bar">{{ tbl.title|upper }}</div>
+      <table class="its-table" style="margin-top: 0;">
+        <thead>
+          <tr>
+            <th class="text-center" style="width: 6%;">#</th>
+            {% for col in tbl.columns %}
+              <th>{{ col.label|upper }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in tbl.rows %}
+            <tr>
+              <td class="text-center font-bold">{{ r.idx }}</td>
+              {% for col in tbl.columns %}
+                <td>{{ r[col.fieldname] }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endfor %}
+
+  {% endif %}
+
+  <!-- ══ ORDER TERMS ═════════════════════════════════════════════ -->
+  <div class="section-bar">ORDER TERMS</div>
+  <table class="doc-grid-table" style="margin-top: 0;">
+    <tr>
+      <td class="lbl">Delivery Terms</td>
+      <td class="val">{{ doc.get('delivery_terms') or 'DDP Abu Dhabi Site' }}</td>
+      <td class="lbl">Confirmed Delivery</td>
+      <td class="val">{{ doc.get('confirmed_delivery') or '-' }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Payment Terms</td>
+      <td class="val">{{ doc.get('payment_terms_template') or doc.get('payment_terms') or '30 Days Net from Delivery' }}</td>
+      <td class="lbl">Warranty</td>
+      <td class="val">{{ doc.get('warranty_period') or '18 Months from Dispatch' }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Price Basis</td>
+      <td class="val">{{ doc.get('price_basis') or 'Delivered Duty Paid (DDP)' }}</td>
+      <td class="lbl">Order Status</td>
+      <td class="val"><strong style="color: #16A34A;">{{ doc.get('status') or ('Submitted' if doc.docstatus == 1 else 'Draft') }}</strong></td>
+    </tr>
+  </table>
+
+  <!-- ══ ORDER CONFIRMATION NOTES ════════════════════════════════ -->
+  <div class="section-bar">ORDER CONFIRMATION NOTES</div>
+  <div class="notes-box">
+    <ol style="margin: 0; padding-left: 18px;">
+      <li>Delivery and supply shall be in accordance with the referenced customer PO, Agreement and Contract.</li>
+      <li>Any deviation in specification, quantity, price or delivery requires written approval.</li>
+      <li>Required delivery documents: Delivery Note, CPE, test certificates and other applicable documents.</li>
+    </ol>
+  </div>
+
+  <!-- ══ SIGNATURES BLOCK ════════════════════════════════════════ -->
+  <div class="its-section-block" style="margin-top: 20px; page-break-inside: avoid;">
+    <table class="sig" style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="width: 50%; vertical-align: top; padding-right: 10px;">
+          <div class="h" style="font-size: 8.5pt; font-weight: bold; color: #002B49; text-transform: uppercase; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px; margin-bottom: 8px;">PREPARED BY</div>
+          <div class="line" style="font-size: 8pt; color: #334155; margin-bottom: 6px;">Name: {{ doc.get('owner') or '_________________________________________' }}</div>
+          <div class="line" style="font-size: 8pt; color: #334155;">Date: {{ frappe.utils.formatdate(doc.creation, 'dd-mm-yyyy') }}</div>
+        </td>
+        <td style="width: 50%; vertical-align: top; padding-left: 10px;">
+          <div class="h" style="font-size: 8.5pt; font-weight: bold; color: #002B49; text-transform: uppercase; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px; margin-bottom: 8px;">AUTHORIZED SIGNATORY</div>
+          <div class="line" style="font-size: 8pt; color: #334155; margin-bottom: 6px;">Name: _________________________________________</div>
+          <div class="line" style="font-size: 8pt; color: #334155;">Signature & Stamp: __________________________</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+          </main>
+        </td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td><!-- Spacer to prevent content from overlapping fixed footer --></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  </div><!-- /a4-container -->
+</div><!-- /print-body -->
+</body>
+</html>

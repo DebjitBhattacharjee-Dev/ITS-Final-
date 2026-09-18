@@ -846,15 +846,8 @@
 						alert(err.message);
 					}
 				} else if (action === 'print') {
-					try {
-						const printData = await window.frappeDocApi.getPrint(currentDoc.doctype, currentDoc.name);
-						const w = window.open('', '_blank');
-						w.document.write(printData.html);
-						w.document.close();
-						w.focus();
-					} catch (err) {
-						alert(err.message);
-					}
+					const printUrl = `/review-print?doctype=${encodeURIComponent(currentDoc.doctype)}&name=${encodeURIComponent(currentDoc.name)}`;
+					window.open(printUrl, '_blank');
 				} else if (action === 'add-line') {
 					collectFormData();
 					if (!editData.prototype_data.lines) editData.prototype_data.lines = [];
