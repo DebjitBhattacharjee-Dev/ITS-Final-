@@ -40,11 +40,15 @@
 
 	function parseRouteParam(param) {
 		if (!param) return { doctype: null, name: null };
-		const parts = param.split('/');
-		if (parts.length > 1) {
-			return { doctype: decodeURIComponent(parts[0]), name: decodeURIComponent(parts.slice(1).join('/')) };
+		let p = param;
+		if (p.includes('%2F') || p.includes('%20')) {
+			try { p = decodeURIComponent(p); } catch (e) {}
 		}
-		return { doctype: null, name: decodeURIComponent(param) };
+		const parts = p.split('/');
+		if (parts.length > 1) {
+			return { doctype: decodeURIComponent(parts[0]).trim(), name: decodeURIComponent(parts.slice(1).join('/')).trim() };
+		}
+		return { doctype: null, name: decodeURIComponent(p).trim() };
 	}
 
 	async function loadDocument(routeParam) {

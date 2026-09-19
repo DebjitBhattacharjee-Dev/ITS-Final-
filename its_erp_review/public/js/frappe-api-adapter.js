@@ -308,5 +308,65 @@
 			return json.message || json;
 		}
 	};
+
+	// Live ERPNext Executive Dashboard & Drill-Down API
+	window.frappeDashboardApi = {
+		async getDashboardData(project = null, department = null, days = 30) {
+			const query = new URLSearchParams();
+			if (days) query.set('days', days);
+			if (project && project !== 'all') query.set('project', project);
+			if (department && department !== 'all') query.set('department', department);
+
+			const res = await originalFetch(`/api/method/its_erp_review.api.dashboard.get_dashboard_data?${query.toString()}`, {
+				headers: { 'X-Frappe-CSRF-Token': window.csrf_token || '' }
+			});
+			const json = await res.json();
+			if (!res.ok) {
+				let msg = json.message || 'Error fetching dashboard data';
+				if (json._server_messages) {
+					try {
+						const parsed = JSON.parse(json._server_messages);
+						msg = parsed.map(m => {
+							try { return JSON.parse(m).message; } catch(e) { return m; }
+						}).join('; ');
+					} catch (e) {}
+				}
+				throw new Error(msg);
+			}
+			return json.message || json;
+		},
+
+		async getDrilldownRecords(params = {}) {
+			const query = new URLSearchParams();
+			if (params.key) query.set('key', params.key);
+			if (params.doctype) query.set('doctype', params.doctype);
+			if (params.status) query.set('status', params.status);
+			if (params.project && params.project !== 'all') query.set('project', params.project);
+			if (params.department && params.department !== 'all') query.set('department', params.department);
+			if (params.days) query.set('days', params.days);
+			if (params.search_text) query.set('search_text', params.search_text);
+			if (params.start) query.set('start', params.start);
+			if (params.limit) query.set('limit', params.limit);
+
+			const res = await originalFetch(`/api/method/its_erp_review.api.dashboard.get_drilldown_records?${query.toString()}`, {
+				headers: { 'X-Frappe-CSRF-Token': window.csrf_token || '' }
+			});
+			const json = await res.json();
+			if (!res.ok) {
+				let msg = json.message || 'Error fetching drilldown records';
+				if (json._server_messages) {
+					try {
+						const parsed = JSON.parse(json._server_messages);
+						msg = parsed.map(m => {
+							try { return JSON.parse(m).message; } catch(e) { return m; }
+						}).join('; ');
+					} catch (e) {}
+				}
+				throw new Error(msg);
+			}
+			return json.message || json;
+		}
+	};
 })(window);
+
 

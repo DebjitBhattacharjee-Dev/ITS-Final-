@@ -2,6 +2,11 @@ import frappe
 import json
 from frappe import _
 
+if not hasattr(frappe, "ConcurrencyError"):
+	class ConcurrencyError(frappe.ValidationError):
+		pass
+	frappe.ConcurrencyError = ConcurrencyError
+
 # Standard domain workflow definitions
 DEFAULT_WORKFLOWS = {
 	"TRADING": [
