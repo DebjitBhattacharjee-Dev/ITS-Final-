@@ -421,7 +421,10 @@
 
 		return `
 			<div class="doc-section-card">
-				<h3 class="section-header">Items & Commercial Scope</h3>
+				<div class="split" style="margin-bottom:12px;">
+					<h3 class="section-header" style="margin:0; border:none;">Items & Commercial Scope</h3>
+					${window.itsExport ? window.itsExport.renderExportButtons({ title: (doc.name || 'Document') + '_Items' }) : ''}
+				</div>
 				<div style="overflow-x:auto;">
 					<table class="doc-line-table">
 						<thead>
@@ -553,7 +556,10 @@
 			<div class="doc-section-card">
 				<div class="split" style="margin-bottom:12px;">
 					<h3 class="section-header" style="margin:0; border:none;">Line Items & Commercial Scope</h3>
-					<button type="button" class="button small" data-doc-action="add-line">+ Add Line Item</button>
+					<div class="actions">
+						<button type="button" class="button small" data-doc-action="add-line">+ Add Line Item</button>
+						${window.itsExport ? window.itsExport.renderExportButtons({ title: (pData.name || 'Draft') + '_Items' }) : ''}
+					</div>
 				</div>
 				<div style="overflow-x:auto;">
 					<table class="doc-line-table">
@@ -618,10 +624,13 @@
 						<h3 class="section-header" style="margin:0; border:none;">Attached Documents & Evidence</h3>
 						<p class="muted" style="margin:4px 0 0 0;">Attached files stored securely in Frappe MariaDB.</p>
 					</div>
-					<label class="button primary" style="cursor:pointer">
-						+ Upload Attachment
-						<input type="file" id="doc-file-upload-input" style="display:none">
-					</label>
+					<div class="actions">
+						<label class="button primary" style="cursor:pointer">
+							+ Upload Attachment
+							<input type="file" id="doc-file-upload-input" style="display:none">
+						</label>
+						${window.itsExport ? window.itsExport.renderExportButtons({ title: (d.name || 'Document') + '_Attachments' }) : ''}
+					</div>
 				</div>
 				<div style="overflow-x:auto;">
 					<table class="doc-line-table">
