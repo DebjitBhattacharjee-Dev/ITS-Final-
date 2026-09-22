@@ -35,12 +35,40 @@ def get_workspace():
 	if user == "Guest":
 		frappe.throw(_("Authentication required"), frappe.AuthenticationError)
 
-	# Fetch accessible projects
+	# Fetch accessible projects from ITS Review Project
 	projects = frappe.get_list(
 		"ITS Review Project",
 		fields=["name as id", "project_name as name", "customer", "project_type", "status", "contract_no", "po_no"],
 		order_by="creation asc"
 	)
+	existing_pids = {p["id"] for p in projects}
+
+	# Also include any ERPNext projects not already in ITS Review Project
+	erp_projects = frappe.get_list(
+		"Project",
+		fields=["name as id", "project_name as name", "customer", "status"],
+		order_by="creation asc"
+	)
+	for ep in erp_projects:
+		if ep["id"] not in existing_pids:
+			is_skid = "skid" in (ep.get("name") or "").lower() or "pss" in (ep.get("name") or "").lower()
+			projects.append({
+				"id": ep["id"],
+				"name": ep.get("name") or ep["id"],
+				"customer": ep.get("customer") or "ITS Client Corp",
+				"project_type": "POWERSKID" if is_skid else "TRADING",
+				"status": ep.get("status") or "Active",
+				"contract_no": ep["id"],
+				"po_no": ep["id"]
+			})
+			existing_pids.add(ep["id"])
+
+	# Ensure all projects have contract & PO numbers populated
+	for p in projects:
+		if not p.get("contract_no"):
+			p["contract_no"] = f"CTR-{p['id']}"
+		if not p.get("po_no"):
+			p["po_no"] = f"PO-{p['id']}"
 
 	skids = frappe.get_list(
 		"ITS Review Skid",
@@ -54,11 +82,24 @@ def get_workspace():
 		order_by="creation asc"
 	)
 
-	punches = frappe.get_list(
+	punches_raw = frappe.get_list(
 		"ITS Review Punch",
 		fields=["name as id", "project_id as projectId", "skid_id as skidId", "source", "category", "description", "responsible", "assigned", "raised_date as raisedDate", "target_date as targetDate", "priority", "status", "closure_remarks as closureRemarks", "evidence", "closed_date as closedDate"],
 		order_by="creation asc"
 	)
+	VALID_PUNCH_SOURCES = {"FAT", "IFAT", "SAT", "Commissioning", "Client Inspection", "Other"}
+	punches = []
+	for punch in punches_raw:
+		p = dict(punch)
+		if p.get("source") not in VALID_PUNCH_SOURCES:
+			p["source"] = "FAT"
+		p["description"] = p.get("description") or "Inspection item"
+		p["responsible"] = p.get("responsible") or "ITS Quality Lead"
+		p["assigned"] = p.get("assigned") or "ITS Engineer"
+		p["raisedDate"] = str(p.get("raisedDate") or frappe.utils.today())
+		p["targetDate"] = str(p.get("targetDate") or frappe.utils.add_days(frappe.utils.today(), 14))
+		p["status"] = p.get("status") or "Open"
+		punches.append(p)
 
 	commissioning = frappe.get_list(
 		"ITS Review Commissioning",
@@ -66,11 +107,28 @@ def get_workspace():
 		order_by="creation asc"
 	)
 
-	documents = frappe.get_list(
+	DOC_CATEGORIES = {
+		'Personnel Documents', 'Vehicle Documents', 'Drawings', 'Datasheets',
+		'Control Narrative', 'Cause & Effect', 'PLC Documents', 'VFD Documents',
+		'Transformer Documents', 'Switchgear Documents', 'UPS Documents',
+		'F&G Documents', 'HVAC Documents', 'FAT Documents', 'IFAT Documents',
+		'SAT Documents', 'Commissioning Documents', 'Punch Closure Documents',
+		'As-Built Documents', 'Handover Documents', 'RCA / Technical Reports'
+	}
+	raw_documents = frappe.get_list(
 		"ITS Review Document",
 		fields=["name as id", "project_id as projectId", "skid_id as skidId", "title", "category", "reference", "revision", "status", "discipline", "transmittal", "owner", "submitted_date as submittedDate", "review_due as reviewDue", "review_comments as reviewComments", "previous_revision_id as previousRevisionId"],
 		order_by="creation asc"
 	)
+	documents = []
+	for doc in raw_documents:
+		d = dict(doc)
+		cat = d.get("category") or "Drawings"
+		if cat == "Engineering Drawing":
+			cat = "Drawings"
+		if cat in DOC_CATEGORIES:
+			d["category"] = cat
+			documents.append(d)
 
 	activities = frappe.get_list(
 		"ITS Review Activity",
@@ -90,6 +148,7 @@ def get_workspace():
 	state = {
 		"projects": projects,
 		"skids": skids,
+		"equipment": [],
 		"events": events,
 		"punches": punches,
 		"commissioning": commissioning,
@@ -463,7 +522,77 @@ TYPE_MAP = {
 	"customer": "Customer",
 	"supplier": "Supplier",
 	"contract": "Contract",
-	"skid": "ITS Review Skid"
+	"skid": "ITS Review Skid",
+	"skids": "ITS Review Skid",
+	"event": "ITS Review Event",
+	"events": "ITS Review Event",
+	"punch": "ITS Review Punch",
+	"punches": "ITS Review Punch",
+	"commissioning": "ITS Review Commissioning",
+	"handover": "ITS Review Handover",
+	"handovers": "ITS Review Handover",
+	"document": "ITS Review Document",
+	"documents": "ITS Review Document",
+	"activity": "ITS Review Activity",
+	"activities": "ITS Review Activity",
+	"materials": "ITS Review Material",
+	"material_item": "ITS Review Material",
+	"equipment": "Item",
+	"Item": "Item",
+	"services": "ITS Review Register",
+	"legal": "ITS Review Register",
+	"products": "Item",
+	"clients": "Customer",
+	"suppliers": "Supplier",
+	"orders": "Sales Order",
+	"invoices": "Sales Invoice",
+	"quotations": "Quotation",
+	"purchases": "Purchase Order",
+	"deliveries": "Delivery Note",
+	"payment": "Payment Entry",
+	"payments": "Payment Entry",
+	"supplierInvoice": "Purchase Invoice",
+	"supplierRFQ": "Request for Quotation",
+	"Customer invoice": "Sales Invoice",
+	"Sales order": "Sales Order",
+	"Sales order & contract": "Sales Order",
+	"Purchase order": "Purchase Order",
+	"Site delivery": "Delivery Note",
+	"Shipment & customs": "Purchase Receipt",
+	"FAT / IFAT / SAT": "ITS Review Event",
+	"SKID register & interfaces": "ITS Review Skid",
+	"Engineering document": "ITS Review Document",
+	"Punch point": "ITS Review Punch",
+	"Commissioning & acceptance": "ITS Review Commissioning",
+	"Supplier invoice match": "Purchase Invoice",
+	"Contract obligation": "Contract",
+	"Inquiry": "Opportunity",
+	"Quotation": "Quotation",
+	"Project plan": "Project",
+	"Project task": "Project",
+	"Estimate & budget": "Quotation",
+	"Material request": "Material Request",
+	"Supplier enquiry & comparison": "Request for Quotation",
+	"Subcontract certificate": "Purchase Order",
+	"Stock receipt / movement": "Stock Entry",
+	"Employee & manpower": "Employee",
+	"Timesheet": "Timesheet",
+	"Site access & permits": "ITS Review Document",
+	"Payroll review": "Payroll Entry",
+	"Fabrication / work order": "Work Order",
+	"Asset & equipment": "Asset",
+	"Maintenance / calibration": "Maintenance Schedule",
+	"Warranty / AMC ticket": "Issue",
+	"Payment follow-up": "Payment Entry",
+	"Retention & financial closure": "Sales Invoice",
+	"Expense / reconciliation": "Journal Entry",
+	"Management exception": "ITS Review Document",
+	"Document template register": "ITS Review Document",
+	"Approval matrix": "Workflow",
+	"General inspection follow-up": "ITS Review Document",
+	"Line Item Contract": "Contract",
+	"RFI": "Opportunity",
+	"Project closure": "Project"
 }
 
 def resolve_target_doctype(doctype, name):
@@ -484,22 +613,42 @@ def resolve_target_doctype(doctype, name):
 		candidates = [
 			doctype,
 			TYPE_MAP.get(doctype) if doctype else None,
-			"ITS Review Document",
-			"ITS Review Party",
-			"ITS Review Material",
-			"ITS Review Skid",
-			"ITS Review Project",
-			"Customer",
-			"Supplier",
 			"Sales Order",
 			"Quotation",
 			"Purchase Order",
 			"Delivery Note",
 			"Sales Invoice",
-			"Project",
-			"Employee",
+			"Purchase Receipt",
+			"Purchase Invoice",
+			"Payment Entry",
+			"Quality Inspection",
 			"Material Request",
-			"Contract"
+			"Opportunity",
+			"Request for Quotation",
+			"Supplier Quotation",
+			"Stock Entry",
+			"ITS Review Skid",
+			"ITS Review Event",
+			"ITS Review Punch",
+			"ITS Review Commissioning",
+			"ITS Review Handover",
+			"ITS Review Document",
+			"ITS Review Activity",
+			"ITS Review Project",
+			"ITS Review Material",
+			"ITS Review Register",
+			"ITS Review Party",
+			"Customer",
+			"Supplier",
+			"Item",
+			"Project",
+			"Contract",
+			"Project Contract",
+			"Employee",
+			"Timesheet",
+			"Issue",
+			"Work Order",
+			"Asset"
 		]
 		for dt in candidates:
 			if dt and frappe.db.exists("DocType", dt) and frappe.db.exists(dt, name):
@@ -865,7 +1014,26 @@ def get_document_detail(doctype=None, name=None):
 	real_doctype = resolve_target_doctype(doctype, name)
 
 	if not frappe.db.exists(real_doctype, name):
-		frappe.throw(_("Document {0} {1} not found").format(real_doctype, name), frappe.DoesNotExistError)
+		resolved_name = None
+		if real_doctype == "Customer":
+			resolved_name = frappe.db.get_value("Customer", {"customer_name": name}, "name")
+		elif real_doctype == "Supplier":
+			resolved_name = frappe.db.get_value("Supplier", {"supplier_name": name}, "name")
+		elif real_doctype == "Item":
+			resolved_name = frappe.db.get_value("Item", {"item_code": name}, "name")
+		elif real_doctype == "ITS Review Material":
+			resolved_name = frappe.db.get_value("ITS Review Material", {"code": name}, "name")
+		elif real_doctype == "ITS Review Register":
+			resolved_name = frappe.db.get_value("ITS Review Register", {"register_name": name}, "name") or frappe.db.get_value("ITS Review Register", {"code": name}, "name")
+		elif real_doctype == "ITS Review Party":
+			resolved_name = frappe.db.get_value("ITS Review Party", {"party_name": name}, "name")
+		elif real_doctype == "ITS Review Skid":
+			resolved_name = frappe.db.get_value("ITS Review Skid", {"skid_number": name}, "name")
+
+		if resolved_name:
+			name = resolved_name
+		else:
+			frappe.throw(_("Document {0} {1} not found").format(real_doctype, name), frappe.DoesNotExistError)
 
 	# Permission check
 	if not frappe.has_permission(real_doctype, "read", doc=name):

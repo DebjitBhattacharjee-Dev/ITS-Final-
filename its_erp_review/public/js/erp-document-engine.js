@@ -81,6 +81,12 @@
 					</div>
 				`;
 			} else {
+				if (typeof recordBy === 'function' && recordBy(name)) {
+					if (typeof recordPage === 'function') {
+						recordPage(name);
+						return;
+					}
+				}
 				view.innerHTML = `
 					<div class="empty" style="padding:60px 20px; text-align:center;">
 						<h1 style="color:#002B49;">Record Not Found</h1>

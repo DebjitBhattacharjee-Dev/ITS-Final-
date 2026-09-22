@@ -21,15 +21,18 @@ function blank(projects=[]){return {version:1,projects:projects.map(p=>({...p,pr
 function check(state){
  const fail=m=>{throw Error(m)},ids=new Set();
  if(!state||!Array.isArray(state.projects))fail('Invalid workspace.');
+ for(const k of Object.keys(fields)){if(!Array.isArray(state[k]))state[k]=[];}
  const all=state.projects.concat(...Object.keys(fields).map(k=>state[k]||[]));
  for(const r of all){if(!r.id||!/^[A-Za-z0-9_-]+$/.test(r.id)||ids.has(r.id))fail('Unique safe record IDs are required.');ids.add(r.id);}
  for(const p of state.projects){if(!TYPES.includes(p.project_type)||!p.name?.trim()||!p.customer?.trim())fail('Project type, name and customer are required.');}
  for(const type of TYPES){const path=state.workflows?.[type];if(!Array.isArray(path)||!path.length||path.some(x=>typeof x!=='string'||!x.trim())||new Set(path).size!==path.length)fail('Workflow stages must be nonempty and unique.');}
  for(const [kind,defs] of Object.entries(fields)){
-  if(!Array.isArray(state[kind]))fail('Missing '+kind+' collection.');
+  if(!Array.isArray(state[kind]))state[kind]=[];
   for(const r of state[kind]){
    const p=state.projects.find(p=>p.id===r.projectId);if(!p)fail('Unknown project.');
    if(p.project_type!=='POWERSKID')fail('PowerSkid records require project_type POWERSKID.');
+   if(kind==='punches'&&!defs.source.includes(r.source))r.source='FAT';
+   if(kind==='documents'&&!defs.category.includes(r.category))r.category='Drawings';
    if(kind!=='skids'&&(r.skidId||!['documents','activities'].includes(kind))&&!state.skids.some(s=>s.id===r.skidId&&s.projectId===p.id))fail('Select a skid belonging to this project.');
    for(const key of required[kind])if(!String(r[key]??'').trim())fail(key+' is required.');
    for(const [key,def] of Object.entries(defs)){if(Array.isArray(def)&&!def.includes(r[key]))fail('Invalid '+key+'.');if(def==='date'&&r[key]&&(!/^\d{4}-\d{2}-\d{2}$/.test(r[key])||new Date(r[key]+'T00:00:00Z').toISOString().slice(0,10)!==r[key]))fail('Invalid '+key+'.');}
