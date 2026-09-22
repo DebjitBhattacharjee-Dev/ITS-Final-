@@ -247,16 +247,75 @@
 			}
 			return json.message || json;
 		},
-		async getDetail(doctype, name) {
-			const res = await originalFetch(`/api/method/its_erp_review.api.documents.get_document_detail?doctype=${encodeURIComponent(doctype || '')}&name=${encodeURIComponent(name || '')}`, {
+		async createDetail(doctype, data) {
+			const res = await originalFetch('/api/method/its_erp_review.api.documents.create_document_detail', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-Frappe-CSRF-Token': window.csrf_token || ''
+				},
+				body: JSON.stringify({ doctype, data })
+			});
+			const json = await res.json();
+			if (!res.ok) {
+				let msg = json.message || 'Error creating document';
+				if (json._server_messages) {
+					try {
+						const parsed = JSON.parse(json._server_messages);
+						msg = parsed.map(m => {
+							try { return JSON.parse(m).message; } catch(e) { return m; }
+						}).join('; ');
+					} catch (e) {}
+				}
+				throw new Error(msg);
+			}
+			return json.message || json;
+		},
+		async getNextDocumentPreview(doctype, name) {
+			const res = await originalFetch(`/api/method/its_erp_review.api.documents.get_next_document_preview?doctype=${encodeURIComponent(doctype || '')}&name=${encodeURIComponent(name || '')}`, {
 				headers: { 'X-Frappe-CSRF-Token': window.csrf_token || '' }
 			});
 			const json = await res.json();
 			if (!res.ok) {
-				const err = new Error(json.message || 'Document could not be retrieved');
-				err.status = res.status;
-				err.exc_type = json.exc_type;
-				throw err;
+				let msg = json.message || 'Error fetching next document preview';
+				if (json._server_messages) {
+					try {
+						const parsed = JSON.parse(json._server_messages);
+						msg = parsed.map(m => {
+							try { return JSON.parse(m).message; } catch(e) { return m; }
+						}).join('; ');
+					} catch (e) {}
+				}
+				throw new Error(msg);
+			}
+			return json.message || json;
+		},
+		async createNextDocument(sourceDoctype, sourceName, targetDoctype = null, data = null) {
+			const res = await originalFetch('/api/method/its_erp_review.api.documents.create_next_document', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-Frappe-CSRF-Token': window.csrf_token || ''
+				},
+				body: JSON.stringify({
+					source_doctype: sourceDoctype,
+					source_name: sourceName,
+					target_doctype: targetDoctype,
+					doc_data: data
+				})
+			});
+			const json = await res.json();
+			if (!res.ok) {
+				let msg = json.message || 'Error executing next document creation';
+				if (json._server_messages) {
+					try {
+						const parsed = JSON.parse(json._server_messages);
+						msg = parsed.map(m => {
+							try { return JSON.parse(m).message; } catch(e) { return m; }
+						}).join('; ');
+					} catch (e) {}
+				}
+				throw new Error(msg);
 			}
 			return json.message || json;
 		},

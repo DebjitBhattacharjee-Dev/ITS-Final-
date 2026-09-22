@@ -131,12 +131,168 @@
 		`;
 	}
 
+	function resolveNextStep(d) {
+		if (!d || !d.doctype) return null;
+		const dt = d.doctype;
+		const mapping = {
+			'Opportunity': {
+				targetDoctype: 'Quotation',
+				label: 'Quotation',
+				description: 'Prepare formal commercial quotation based on customer request and scope.',
+				prerequisite: 'Opportunity qualified and customer scope verified.'
+			},
+			'Quotation': {
+				targetDoctype: 'Sales Order',
+				label: 'Sales Order (PO Acceptance)',
+				description: 'Initiate Sales Order upon client purchase order award (Gate 1 PO Validation).',
+				prerequisite: 'Quotation approved and Client PO matched.'
+			},
+			'Sales Order': {
+				targetDoctype: 'Purchase Order',
+				secondaryTarget: 'Delivery Note',
+				label: 'Purchase Order (Procurement)',
+				description: 'Issue purchase orders for project materials under approved budget (Gate 2).',
+				prerequisite: 'Sales Order confirmed and project finance commitment approved.'
+			},
+			'Material Request': {
+				targetDoctype: 'Purchase Order',
+				label: 'Purchase Order',
+				description: 'Create Purchase Order to fulfill approved Material Requisition.',
+				prerequisite: 'Material Request approved.'
+			},
+			'Supplier Quotation': {
+				targetDoctype: 'Purchase Order',
+				label: 'Purchase Order',
+				description: 'Award Purchase Order to selected supplier quotation.',
+				prerequisite: 'Supplier Quotation evaluated and approved.'
+			},
+			'Purchase Order': {
+				targetDoctype: 'Purchase Receipt',
+				secondaryTarget: 'Purchase Invoice',
+				label: 'Purchase Receipt (Material Receipt)',
+				description: 'Record physical goods receipt at warehouse and verify materials against PO.',
+				prerequisite: 'Purchase Order issued and vendor shipment delivered.'
+			},
+			'Purchase Receipt': {
+				targetDoctype: 'Purchase Invoice',
+				label: 'Purchase Invoice (Supplier Bill)',
+				description: 'Process supplier invoice against verified goods receipt (3-way match).',
+				prerequisite: 'Purchase Receipt accepted by warehouse QA.'
+			},
+			'Purchase Invoice': {
+				targetDoctype: 'Payment Entry',
+				label: 'Payment Entry (Supplier Payment)',
+				description: 'Disburse payment to supplier against approved invoice.',
+				prerequisite: 'Purchase Invoice verified and approved for payment.'
+			},
+			'ITS Review Skid': {
+				targetDoctype: 'ITS Review Event',
+				label: 'FAT / Inspection Event',
+				description: 'Schedule Factory Acceptance Testing (FAT) for the assembled skid package.',
+				prerequisite: 'Skid fabrication and internal workshop testing complete.'
+			},
+			'ITS Review Event': {
+				targetDoctype: 'Delivery Note',
+				secondaryTarget: 'ITS Review Punch',
+				label: 'Delivery Note (Site Dispatch)',
+				description: 'Initiate site transit and Delivery Note following inspection clearance (Gate 3).',
+				prerequisite: 'Inspection passed and critical punch points closed.'
+			},
+			'ITS Review Punch': {
+				targetDoctype: 'ITS Review Event',
+				label: 'Re-Inspection / Verification Event',
+				description: 'Schedule re-inspection to verify punch point closure.',
+				prerequisite: 'Corrective action completed with attached evidence.'
+			},
+			'Delivery Note': {
+				targetDoctype: 'Sales Invoice',
+				secondaryTarget: 'ITS Review Commissioning',
+				label: 'Sales Invoice (Billing Milestone)',
+				description: 'Issue customer milestone invoice following signed delivery note / POD (Gate 4).',
+				prerequisite: 'Signed Delivery Note / Proof of Delivery confirmed.'
+			},
+			'ITS Review Commissioning': {
+				targetDoctype: 'ITS Review Handover',
+				label: 'Project Handover / CEP',
+				description: 'Issue Certificate of Equipment Performance (CEP) and client handover dossier.',
+				prerequisite: 'Site commissioning and SAT accepted by client.'
+			},
+			'Sales Invoice': {
+				targetDoctype: 'Payment Entry',
+				label: 'Payment Entry (Collections)',
+				description: 'Record client collection and allocate against tax invoice.',
+				prerequisite: 'Tax Invoice submitted and payment received from client.'
+			},
+			'Payment Entry': {
+				targetDoctype: 'ITS Review Handover',
+				label: 'Retention Release / Handover',
+				description: 'Initiate retention release or project final commercial sign-off.',
+				prerequisite: 'Milestone payments received and warranty period active.'
+			},
+			'ITS Review Handover': {
+				targetDoctype: 'Project',
+				label: 'Project Final Closure',
+				description: 'Complete final operational, warranty and financial closure of the project.',
+				prerequisite: 'All handovers, punch lists, and commercial settlements resolved.'
+			},
+			'Customer': {
+				targetDoctype: 'Opportunity',
+				label: 'Opportunity / RFI',
+				description: 'Create new commercial opportunity for this customer.',
+				prerequisite: 'Customer master record active.'
+			},
+			'Supplier': {
+				targetDoctype: 'Purchase Order',
+				label: 'Purchase Order',
+				description: 'Create procurement purchase order for this supplier.',
+				prerequisite: 'Supplier approved in vendor register.'
+			},
+			'Item': {
+				targetDoctype: 'Material Request',
+				label: 'Material Request',
+				description: 'Requisition this item for project or inventory stock.',
+				prerequisite: 'Item active in stock register.'
+			},
+			'ITS Review Material': {
+				targetDoctype: 'Purchase Order',
+				label: 'Purchase Order',
+				description: 'Procure approved materials for project bill of materials.',
+				prerequisite: 'Material code active.'
+			},
+			'ITS Review Party': {
+				targetDoctype: 'Quotation',
+				label: 'Quotation',
+				description: 'Initiate commercial quotation for this counterparty.',
+				prerequisite: 'Party profile active.'
+			},
+			'ITS Review Project': {
+				targetDoctype: 'Sales Order',
+				label: 'Sales Order / Contract',
+				description: 'Create formal Sales Order / Contract for this project award.',
+				prerequisite: 'Project award confirmed.'
+			},
+			'Project': {
+				targetDoctype: 'Sales Order',
+				label: 'Sales Order / Contract',
+				description: 'Create formal Sales Order for this project.',
+				prerequisite: 'Project active.'
+			}
+		};
+		return mapping[dt] || {
+			targetDoctype: 'Sales Order',
+			label: 'Next Step Document',
+			description: 'Progress to the next operational or financial stage.',
+			prerequisite: 'Upstream review completion.'
+		};
+	}
+
 	function renderDocumentView() {
 		if (!currentDoc) return;
 		const d = currentDoc;
 		const view = document.getElementById('view');
 		const act = d.allowed_actions || {};
 		const wf = d.workflow_state || {};
+		const nextStep = resolveNextStep(d);
 
 		// Header Action Buttons based on Workflow & Permissions
 		let actionsHtml = '';
@@ -144,6 +300,15 @@
 			actionsHtml += `<button class="button" data-doc-action="cancel-edit">Cancel Edit</button>`;
 			actionsHtml += `<button class="button primary" data-doc-action="save">Save Changes</button>`;
 		} else {
+			// Universal Next Step Creation Action Button
+			if (nextStep) {
+				actionsHtml += `
+					<button class="button primary next-doc-btn" data-doc-action="create-next" style="background:#F18716; color:#071F4E; border:1px solid #F18716; font-weight:800; display:inline-flex; align-items:center; gap:8px; padding:7px 16px; border-radius:6px; box-shadow:0 2px 10px rgba(241,135,22,0.35); cursor:pointer;" title="Progress to ${esc(nextStep.targetDoctype)} as per BRD v1.2">
+						<span style="font-size:15px; line-height:1;">➔</span> Create Next: ${esc(nextStep.label)}
+					</button>
+				`;
+			}
+
 			if (act.can_edit) {
 				actionsHtml += `<button class="button" data-doc-action="edit">Edit details</button>`;
 			}
@@ -246,6 +411,20 @@
 				</div>
 
 				<div class="side-stack" style="width:320px; shrink:0;">
+					${nextStep ? `
+						<section class="side-panel" style="border:1.5px solid #F18716; background:linear-gradient(180deg, #FFFFFF 0%, #FFFDF9 100%); box-shadow:0 4px 14px rgba(241,135,22,0.12); margin-bottom:16px;">
+							<div class="next-label" style="color:#C25E00; font-weight:800; font-size:11px; letter-spacing:0.8px;">NEXT PROCESS STEP (BRD v1.2)</div>
+							<h3 style="color:#071F4E; margin:6px 0 4px 0; font-size:16px; font-weight:800;">${esc(nextStep.label)}</h3>
+							<p style="color:#475569; font-size:13px; line-height:1.45; margin:0 0 10px 0;">${esc(nextStep.description)}</p>
+							<div style="background:#F8FAFC; border-left:3px solid #005A9C; padding:7px 9px; border-radius:4px; margin-bottom:12px; font-size:12px; color:#334155;">
+								<strong style="color:#002B49;">Prerequisite:</strong> ${esc(nextStep.prerequisite)}
+							</div>
+							<button class="button primary" style="width:100%; background:#071F4E; color:#FFFFFF; border:none; padding:9px 14px; font-weight:700; border-radius:6px; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:8px;" data-doc-action="create-next">
+								<span>➔</span> Initiate ${esc(nextStep.targetDoctype)} Draft
+							</button>
+						</section>
+					` : ''}
+
 					<section class="side-panel">
 						<div class="next-label">CURRENT WORKFLOW STAGE</div>
 						<h3 style="color:#002B49; margin-top:6px;">${esc(getStageTitle(d))}</h3>
@@ -872,6 +1051,8 @@
 					if (!editData.prototype_data.lines) editData.prototype_data.lines = [];
 					editData.prototype_data.lines.push({ code: '', description: '', qty: 1, unit: 'Nos', rate: 0 });
 					renderDocumentView();
+				} else if (action === 'create-next') {
+					openCreateNextModal(currentDoc);
 				} else if (action === 'remove-line') {
 					collectFormData();
 					const idx = Number(btn.dataset.index);
@@ -911,6 +1092,168 @@
 				};
 				reader.readAsDataURL(file);
 			};
+		}
+	}
+
+	async function openCreateNextModal(doc) {
+		if (!doc) return;
+		const nextStep = resolveNextStep(doc);
+		if (!nextStep) {
+			if (typeof notify === 'function') notify('No downstream document progression defined for this record type.');
+			return;
+		}
+
+		const dialog = document.getElementById('dialog');
+		const dialogBody = document.getElementById('dialog-body');
+		if (!dialog || !dialogBody) return;
+
+		dialogBody.innerHTML = `
+			<div style="padding:28px 16px; text-align:center;">
+				<div style="font-size:32px; animation:spin 1.5s linear infinite; margin-bottom:14px;">⏳</div>
+				<h3 style="color:#071F4E; font-weight:800; margin:0 0 6px 0;">Analyzing BRD v1.2 Workflow...</h3>
+				<p style="color:#64748B; font-size:13px; margin:0;">Resolving data dependencies, line items, and business gates...</p>
+			</div>
+		`;
+		if (typeof dialog.showModal === 'function') dialog.showModal();
+
+		try {
+			const preview = await window.frappeDocApi.getNextDocumentPreview(doc.doctype, doc.name);
+
+			let warningHtml = '';
+			if (preview.warning) {
+				warningHtml = `
+					<div class="notice" style="background:#FFFBEB; border:1px solid #FDE68A; color:#92400E; padding:12px 14px; border-radius:6px; margin-bottom:16px; font-size:13px; display:flex; gap:10px; align-items:flex-start;">
+						<span style="font-size:18px; line-height:1;">⚠️</span>
+						<div>
+							<strong>BRD Gate Notice (${esc(preview.gate_status)}):</strong> ${esc(preview.warning)}
+							<div style="font-size:12px; color:#B45309; margin-top:4px;">You may generate the linked draft document with inherited dependencies. In production, prerequisite approvals must be completed before downstream submission.</div>
+						</div>
+					</div>
+				`;
+			}
+
+			const items = preview.defaults.items || [];
+			let itemsHtml = '';
+			if (items.length > 0) {
+				itemsHtml = `
+					<div style="margin-top:16px;">
+						<div style="font-size:12px; font-weight:700; color:#002B49; text-transform:uppercase; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+							<span>Inherited Scope & Commercial Lines (${items.length})</span>
+							<span style="background:#EFF6FF; color:#1D4ED8; font-size:11px; padding:2px 8px; border-radius:10px;">Source: ${esc(preview.source_name)}</span>
+						</div>
+						<div class="table-wrap" style="max-height:180px; overflow-y:auto; border:1px solid #E2E8F0; border-radius:6px;">
+							<table class="line-table" style="font-size:12px; margin:0;">
+								<thead>
+									<tr style="background:#F8FAFC;">
+										<th>Item</th>
+										<th>Description</th>
+										<th style="text-align:right;">Qty</th>
+										<th style="text-align:right;">Rate (${esc(preview.defaults.currency)})</th>
+										<th style="text-align:right;">Amount</th>
+									</tr>
+								</thead>
+								<tbody>
+									${items.map(it => `
+										<tr>
+											<td><strong>${esc(it.item_code)}</strong></td>
+											<td>${esc(it.description || it.item_name || '—')}</td>
+											<td style="text-align:right;">${it.qty} ${esc(it.uom || '')}</td>
+											<td style="text-align:right;">${money(it.rate, preview.defaults.currency)}</td>
+											<td style="text-align:right; font-weight:700;">${money(it.amount, preview.defaults.currency)}</td>
+										</tr>
+									`).join('')}
+								</tbody>
+							</table>
+						</div>
+					</div>
+				`;
+			}
+
+			dialogBody.innerHTML = `
+				<div class="eyebrow" style="color:#F18716; font-weight:800;">BRD v1.2 PROCESS TRANSITION</div>
+				<h2 style="color:#071F4E; font-weight:800; margin:4px 0 6px 0;">Create Next: ${esc(preview.target_label)}</h2>
+				<p style="color:#475569; font-size:13px; margin:0 0 16px 0;">${esc(preview.description)}</p>
+
+				${warningHtml}
+
+				<div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px; padding:14px; margin-bottom:16px;">
+					<div style="font-size:11px; font-weight:800; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">Inherited Data Dependencies</div>
+					<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:13px;">
+						<div>
+							<span style="color:#64748B; font-size:11px; display:block;">Source Document</span>
+							<strong style="color:#071F4E;">${esc(preview.source_doctype)} · ${esc(preview.source_name)}</strong>
+						</div>
+						<div>
+							<span style="color:#64748B; font-size:11px; display:block;">Target DocType</span>
+							<strong style="color:#005A9C;">${esc(preview.target_doctype)}</strong>
+						</div>
+						<div>
+							<span style="color:#64748B; font-size:11px; display:block;">Project / Contract</span>
+							<strong style="color:#071F4E;">${esc(preview.defaults.project || 'Project Linked')}</strong>
+						</div>
+						<div>
+							<span style="color:#64748B; font-size:11px; display:block;">Counterparty (Customer / Supplier)</span>
+							<strong style="color:#071F4E;">${esc(preview.defaults.customer || preview.defaults.supplier || 'Active Business Partner')}</strong>
+						</div>
+						<div>
+							<span style="color:#64748B; font-size:11px; display:block;">Currency & Total Base</span>
+							<strong style="color:#071F4E;">${esc(preview.defaults.currency)} ${money(preview.defaults.total_amount, preview.defaults.currency)}</strong>
+						</div>
+						<div>
+							<span style="color:#64748B; font-size:11px; display:block;">Prerequisite Check</span>
+							<span style="color:#059669; font-weight:700;">✓ ${esc(preview.prerequisite)}</span>
+						</div>
+					</div>
+					${itemsHtml}
+				</div>
+
+				<div id="create-next-error" role="alert" style="color:#DC2626; font-size:13px; margin-bottom:12px; font-weight:600;"></div>
+
+				<div class="form-actions" style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+					<button type="button" class="button" data-action="close-dialog">Cancel</button>
+					<button type="button" class="button primary" id="confirm-create-next-btn" style="background:#F18716; color:#071F4E; border-color:#F18716; font-weight:800; box-shadow:0 2px 10px rgba(241,135,22,0.35);">
+						➔ Create & Open ${esc(preview.target_doctype)} Draft
+					</button>
+				</div>
+			`;
+
+			const confirmBtn = document.getElementById('confirm-create-next-btn');
+			if (confirmBtn) {
+				confirmBtn.onclick = async () => {
+					confirmBtn.disabled = true;
+					const origText = confirmBtn.innerHTML;
+					confirmBtn.innerHTML = `<span class="spinner-sm"></span> Generating linked ${esc(preview.target_doctype)}...`;
+					const errBox = document.getElementById('create-next-error');
+					if (errBox) errBox.textContent = '';
+
+					try {
+						const created = await window.frappeDocApi.createNextDocument(doc.doctype, doc.name, preview.target_doctype, preview.defaults);
+						if (dialog && dialog.open) dialog.close();
+						if (typeof notify === 'function') {
+							notify(`Linked ${created.doctype} ${created.name} created successfully.`);
+						}
+						const newRoute = `#record/${encodeURIComponent(created.doctype)}/${encodeURIComponent(created.name)}`;
+						window.location.hash = newRoute;
+						loadDocument(`${created.doctype}/${created.name}`);
+					} catch (err) {
+						confirmBtn.disabled = false;
+						confirmBtn.innerHTML = origText;
+						if (errBox) {
+							errBox.textContent = err.message || 'Failed to create next document.';
+						} else {
+							alert(err.message || 'Failed to create next document.');
+						}
+					}
+				};
+			}
+		} catch (err) {
+			dialogBody.innerHTML = `
+				<div style="padding:20px; text-align:center;">
+					<h3 style="color:#DC2626;">BRD Progression Error</h3>
+					<p style="color:#475569; margin:10px 0 16px 0;">${esc(err.message || 'Unable to resolve next document step.')}</p>
+					<button type="button" class="button" data-action="close-dialog">Close</button>
+				</div>
+			`;
 		}
 	}
 

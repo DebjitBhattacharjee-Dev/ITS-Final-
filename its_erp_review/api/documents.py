@@ -1500,4 +1500,519 @@ def get_link_options(doctype=None, txt=""):
 	records = frappe.get_list(doctype, filters=filters, fields=["name"], limit=20)
 	return {"options": [r.name for r in records]}
 
+# =============================================================================
+# BRD v1.2 Universal Next Step Progression & Document Creation Engine
+# =============================================================================
+
+BRD_NEXT_STEP_MAPPING = {
+	"Opportunity": {
+		"target_doctype": "Quotation",
+		"label": "Quotation",
+		"description": "Prepare formal commercial quotation based on customer request and scope.",
+		"prerequisite": "Opportunity qualified and customer scope verified."
+	},
+	"Quotation": {
+		"target_doctype": "Sales Order",
+		"label": "Sales Order (PO Acceptance)",
+		"description": "Initiate Sales Order upon client purchase order award (Gate 1 PO Validation).",
+		"prerequisite": "Quotation approved and Client PO matched."
+	},
+	"Sales Order": {
+		"target_doctype": "Purchase Order",
+		"secondary_target": "Delivery Note",
+		"label": "Purchase Order (Procurement)",
+		"description": "Issue purchase orders for project materials under approved budget (Gate 2).",
+		"prerequisite": "Sales Order confirmed and project finance commitment approved."
+	},
+	"Material Request": {
+		"target_doctype": "Purchase Order",
+		"label": "Purchase Order",
+		"description": "Create Purchase Order to fulfill approved Material Requisition.",
+		"prerequisite": "Material Request approved."
+	},
+	"Supplier Quotation": {
+		"target_doctype": "Purchase Order",
+		"label": "Purchase Order",
+		"description": "Award Purchase Order to selected supplier quotation.",
+		"prerequisite": "Supplier Quotation evaluated and approved."
+	},
+	"Purchase Order": {
+		"target_doctype": "Purchase Receipt",
+		"secondary_target": "Purchase Invoice",
+		"label": "Purchase Receipt (Material Receipt)",
+		"description": "Record physical goods receipt at warehouse and verify materials against PO.",
+		"prerequisite": "Purchase Order issued and vendor shipment delivered."
+	},
+	"Purchase Receipt": {
+		"target_doctype": "Purchase Invoice",
+		"label": "Purchase Invoice (Supplier Bill)",
+		"description": "Process supplier invoice against verified goods receipt (3-way match).",
+		"prerequisite": "Purchase Receipt accepted by warehouse QA."
+	},
+	"Purchase Invoice": {
+		"target_doctype": "Payment Entry",
+		"label": "Payment Entry (Supplier Payment)",
+		"description": "Disburse payment to supplier against approved invoice.",
+		"prerequisite": "Purchase Invoice verified and approved for payment."
+	},
+	"ITS Review Skid": {
+		"target_doctype": "ITS Review Event",
+		"label": "FAT / Inspection Event",
+		"description": "Schedule Factory Acceptance Testing (FAT) for the assembled skid package.",
+		"prerequisite": "Skid fabrication and internal workshop testing complete."
+	},
+	"ITS Review Event": {
+		"target_doctype": "Delivery Note",
+		"secondary_target": "ITS Review Punch",
+		"label": "Delivery Note (Site Dispatch)",
+		"description": "Initiate site transit and Delivery Note following inspection clearance (Gate 3).",
+		"prerequisite": "Inspection passed and critical punch points closed."
+	},
+	"ITS Review Punch": {
+		"target_doctype": "ITS Review Event",
+		"label": "Re-Inspection / Verification Event",
+		"description": "Schedule re-inspection to verify punch point closure.",
+		"prerequisite": "Corrective action completed with attached evidence."
+	},
+	"Delivery Note": {
+		"target_doctype": "Sales Invoice",
+		"secondary_target": "ITS Review Commissioning",
+		"label": "Sales Invoice (Billing Milestone)",
+		"description": "Issue customer milestone invoice following signed delivery note / POD (Gate 4).",
+		"prerequisite": "Signed Delivery Note / Proof of Delivery confirmed."
+	},
+	"ITS Review Commissioning": {
+		"target_doctype": "ITS Review Handover",
+		"label": "Project Handover / CEP",
+		"description": "Issue Certificate of Equipment Performance (CEP) and client handover dossier.",
+		"prerequisite": "Site commissioning and SAT accepted by client."
+	},
+	"Sales Invoice": {
+		"target_doctype": "Payment Entry",
+		"label": "Payment Entry (Collections)",
+		"description": "Record client collection and allocate against tax invoice.",
+		"prerequisite": "Tax Invoice submitted and payment received from client."
+	},
+	"Payment Entry": {
+		"target_doctype": "ITS Review Handover",
+		"label": "Retention Release / Handover",
+		"description": "Initiate retention release or project final commercial sign-off.",
+		"prerequisite": "Milestone payments received and warranty period active."
+	},
+	"ITS Review Handover": {
+		"target_doctype": "Project",
+		"label": "Project Final Closure",
+		"description": "Complete final operational, warranty and financial closure of the project.",
+		"prerequisite": "All handovers, punch lists, and commercial settlements resolved."
+	},
+	"Customer": {
+		"target_doctype": "Opportunity",
+		"label": "Opportunity / RFI",
+		"description": "Create new commercial opportunity for this customer.",
+		"prerequisite": "Customer master record active."
+	},
+	"Supplier": {
+		"target_doctype": "Purchase Order",
+		"label": "Purchase Order",
+		"description": "Create procurement purchase order for this supplier.",
+		"prerequisite": "Supplier approved in vendor register."
+	},
+	"Item": {
+		"target_doctype": "Material Request",
+		"label": "Material Request",
+		"description": "Requisition this item for project or inventory stock.",
+		"prerequisite": "Item active in stock register."
+	},
+	"ITS Review Material": {
+		"target_doctype": "Purchase Order",
+		"label": "Purchase Order",
+		"description": "Procure approved materials for project bill of materials.",
+		"prerequisite": "Material code active."
+	},
+	"ITS Review Party": {
+		"target_doctype": "Quotation",
+		"label": "Quotation",
+		"description": "Initiate commercial quotation for this counterparty.",
+		"prerequisite": "Party profile active."
+	},
+	"ITS Review Project": {
+		"target_doctype": "Sales Order",
+		"label": "Sales Order / Contract",
+		"description": "Create formal Sales Order / Contract for this project award.",
+		"prerequisite": "Project award confirmed."
+	},
+	"Project": {
+		"target_doctype": "Sales Order",
+		"label": "Sales Order / Contract",
+		"description": "Create formal Sales Order for this project.",
+		"prerequisite": "Project active."
+	}
+}
+
+@frappe.whitelist(allow_guest=True)
+def get_next_document_preview(doctype=None, name=None):
+	"""
+	Analyzes current document, identifies the next BRD lifecycle stage,
+	compiles inherited fields, verifies business gates, and returns a preview payload.
+	"""
+	user = frappe.session.user
+	if user == "Guest":
+		frappe.throw(_("Authentication required"), frappe.AuthenticationError)
+
+	if not name:
+		frappe.throw(_("Document name/ID is required"))
+
+	real_doctype = resolve_target_doctype(doctype, name)
+	if not frappe.db.exists(real_doctype, name):
+		frappe.throw(_("Document {0} {1} not found").format(real_doctype, name), frappe.DoesNotExistError)
+
+	doc = frappe.get_doc(real_doctype, name)
+	rule = BRD_NEXT_STEP_MAPPING.get(real_doctype)
+
+	if not rule:
+		target_doctype = "Sales Order"
+		label = "Next Step Document"
+		description = "Create next step document in lifecycle."
+		prerequisite = "Upstream document verification."
+	else:
+		target_doctype = rule["target_doctype"]
+		label = rule["label"]
+		description = rule["description"]
+		prerequisite = rule["prerequisite"]
+
+	# Resolve inherited dependencies
+	project = (
+		getattr(doc, "project", None) or
+		getattr(doc, "project_id", None) or
+		getattr(doc, "contract_no", None) or
+		""
+	)
+	customer = (
+		getattr(doc, "customer", None) or
+		(doc.get("party_name") if doc.get("party_type") == "Customer" else None) or
+		getattr(doc, "customer_name", None) or
+		""
+	)
+	supplier = (
+		getattr(doc, "supplier", None) or
+		(doc.get("party_name") if doc.get("party_type") == "Supplier" else None) or
+		getattr(doc, "supplier_name", None) or
+		""
+	)
+	currency = getattr(doc, "currency", None) or "AED"
+
+	# Inherit lines/items
+	items = []
+	raw_items = doc.get("items") or []
+	for item in raw_items:
+		items.append({
+			"item_code": item.get("item_code") or item.get("item_name") or "Standard Item",
+			"item_name": item.get("item_name") or item.get("item_code") or "",
+			"description": item.get("description") or item.get("item_name") or item.get("item_code") or "",
+			"qty": float(item.get("qty") or 1.0),
+			"rate": float(item.get("rate") or 0.0),
+			"uom": item.get("uom") or "Nos",
+			"amount": float(item.get("amount") or (float(item.get("qty") or 1.0) * float(item.get("rate") or 0.0)))
+		})
+
+	# If no child items found on live doc, check prototype review_comments payload
+	if not items and hasattr(doc, "review_comments") and doc.review_comments:
+		try:
+			p_data = json.loads(doc.review_comments)
+			for line in p_data.get("lines", []):
+				items.append({
+					"item_code": line.get("code") or "Item",
+					"description": line.get("description") or "",
+					"qty": float(line.get("qty") or 1.0),
+					"rate": float(line.get("rate") or 0.0),
+					"uom": line.get("unit") or "Nos",
+					"amount": float(line.get("qty") or 1.0) * float(line.get("rate") or 0.0)
+				})
+		except Exception:
+			pass
+
+	# Evaluate BRD gates / warning alerts
+	warning = None
+	gate_status = "Ready"
+	if doc.docstatus == 0 and doc.get("workflow_state") not in ["Approved", "Completed", "Passed"]:
+		warning = f"Upstream Notice: Source document {real_doctype} '{name}' is currently in Draft status. Recommended to complete review before final submission."
+		gate_status = "Draft Warning"
+
+	# Gate 1 check: Client PO Validation
+	if real_doctype == "Quotation" and target_doctype == "Sales Order":
+		total = float(doc.get("grand_total") or doc.get("total") or 0.0)
+		if total == 0.0:
+			warning = "Gate 1 Alert: Quotation total is AED 0.00. Ensure pricing is populated before client PO validation."
+
+	# Gate 2 check: Finance Commitment
+	elif target_doctype == "Purchase Order" and project:
+		if frappe.db.exists("DocType", "Finance Commitment"):
+			fc = frappe.db.exists("Finance Commitment", {"project": project, "approval_status": "Approved"})
+			if not fc:
+				warning = f"Gate 2 Alert: Finance Commitment for Project '{project}' is not yet approved."
+				gate_status = "Gate 2 Pending"
+
+	# Gate 3 check: Delivery Note Critical Punches
+	elif target_doctype == "Delivery Note" and project:
+		if frappe.db.exists("DocType", "ITS Review Punch"):
+			open_punches = frappe.db.count("ITS Review Punch", {"project_id": project, "category": ["in", ["Category A", "Critical"]], "status": ["!=", "Closed"]})
+			if open_punches > 0:
+				warning = f"Gate 3 Alert: Delivery Note requires punch point clearance. {open_punches} critical punch items remain open."
+				gate_status = "Gate 3 Blocked"
+
+	# Gate 4 check: Sales Invoice Delivery Note
+	elif target_doctype == "Sales Invoice" and project:
+		dn_count = frappe.db.count("Delivery Note", {"project": project, "docstatus": 1})
+		if dn_count == 0:
+			warning = f"Gate 4 Alert: Invoice readiness requires a submitted Delivery Note for Project '{project}'."
+			gate_status = "Gate 4 Pending"
+
+	return {
+		"source_doctype": real_doctype,
+		"source_name": name,
+		"source_title": getattr(doc, "title", None) or getattr(doc, "customer_name", None) or name,
+		"target_doctype": target_doctype,
+		"target_label": label,
+		"description": description,
+		"prerequisite": prerequisite,
+		"warning": warning,
+		"gate_status": gate_status,
+		"can_create": frappe.has_permission(target_doctype, "create"),
+		"defaults": {
+			"project": project,
+			"customer": customer,
+			"supplier": supplier,
+			"currency": currency,
+			"source_reference": name,
+			"items": items,
+			"total_amount": float(doc.get("grand_total") or doc.get("total") or 0.0)
+		}
+	}
+
+@frappe.whitelist(allow_guest=True)
+def create_next_document(source_doctype=None, source_name=None, target_doctype=None, doc_data=None):
+	"""
+	Executes transition to next BRD document, carrying forward all linked data,
+	references, items, and audit trail.
+	"""
+	user = frappe.session.user
+	if user == "Guest":
+		frappe.throw(_("Authentication required"), frappe.AuthenticationError)
+
+	if not source_name:
+		frappe.throw(_("Source document name is required"))
+
+	real_source_doctype = resolve_target_doctype(source_doctype, source_name)
+	if not frappe.db.exists(real_source_doctype, source_name):
+		frappe.throw(_("Source document not found"), frappe.DoesNotExistError)
+
+	source_doc = frappe.get_doc(real_source_doctype, source_name)
+
+	# Determine target doctype
+	if not target_doctype:
+		rule = BRD_NEXT_STEP_MAPPING.get(real_source_doctype)
+		target_doctype = rule["target_doctype"] if rule else "Sales Order"
+
+	target_doctype = resolve_target_doctype(target_doctype, None)
+
+	if not frappe.has_permission(target_doctype, "create"):
+		frappe.throw(_("Access Denied: You do not have permission to create {0}").format(target_doctype), frappe.PermissionError)
+
+	if isinstance(doc_data, str):
+		try:
+			doc_data = json.loads(doc_data)
+		except Exception:
+			doc_data = {}
+	doc_data = doc_data or {}
+
+	# Extract inherited values
+	project = (
+		doc_data.get("project") or
+		getattr(source_doc, "project", None) or
+		getattr(source_doc, "project_id", None) or
+		getattr(source_doc, "contract_no", None) or
+		""
+	)
+	customer = (
+		doc_data.get("customer") or
+		getattr(source_doc, "customer", None) or
+		(source_doc.get("party_name") if source_doc.get("party_type") == "Customer" else None) or
+		getattr(source_doc, "party_name", None) or
+		""
+	)
+	supplier = (
+		doc_data.get("supplier") or
+		getattr(source_doc, "supplier", None) or
+		(source_doc.get("party_name") if source_doc.get("party_type") == "Supplier" else None) or
+		""
+	)
+	company = (
+		getattr(source_doc, "company", None) or
+		frappe.defaults.get_user_default("Company") or
+		frappe.db.get_single_value("Global Defaults", "default_company") or
+		frappe.db.get_value("Company", {}, "name") or
+		"ITS Industrial Technical Services LLC"
+	)
+
+	new_doc = None
+
+	# Attempt native ERPNext mapper if source document is submitted (docstatus=1)
+	if source_doc.docstatus == 1:
+		try:
+			if real_source_doctype == "Quotation" and target_doctype == "Sales Order":
+				from erpnext.selling.doctype.quotation.quotation import make_sales_order
+				new_doc = make_sales_order(source_name)
+			elif real_source_doctype == "Sales Order" and target_doctype == "Delivery Note":
+				from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
+				new_doc = make_delivery_note(source_name)
+			elif real_source_doctype == "Sales Order" and target_doctype == "Sales Invoice":
+				from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
+				new_doc = make_sales_invoice(source_name)
+			elif real_source_doctype == "Delivery Note" and target_doctype == "Sales Invoice":
+				from erpnext.stock.doctype.delivery_note.delivery_note import make_sales_invoice
+				new_doc = make_sales_invoice(source_name)
+			elif real_source_doctype == "Purchase Order" and target_doctype == "Purchase Receipt":
+				from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_receipt
+				new_doc = make_purchase_receipt(source_name)
+			elif real_source_doctype == "Purchase Order" and target_doctype == "Purchase Invoice":
+				from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice
+				new_doc = make_purchase_invoice(source_name)
+			elif real_source_doctype in ["Sales Invoice", "Purchase Invoice"] and target_doctype == "Payment Entry":
+				from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+				new_doc = get_payment_entry(real_source_doctype, source_name)
+		except Exception:
+			new_doc = None
+
+	# If native mapper was not used or failed (e.g. source is draft), construct linked doc directly
+	if not new_doc:
+		new_doc = frappe.new_doc(target_doctype)
+		if hasattr(new_doc, "company"):
+			new_doc.company = company
+		if hasattr(new_doc, "project") and project:
+			new_doc.project = project
+		if hasattr(new_doc, "customer") and customer:
+			new_doc.customer = customer
+		if hasattr(new_doc, "supplier") and supplier:
+			new_doc.supplier = supplier
+		if hasattr(new_doc, "currency"):
+			new_doc.currency = getattr(source_doc, "currency", None) or "AED"
+
+		# Date defaults
+		today_str = frappe.utils.today()
+		plus_30 = frappe.utils.add_days(today_str, 30)
+		for df_name in ["transaction_date", "posting_date", "delivery_date", "schedule_date", "due_date", "valid_till"]:
+			if hasattr(new_doc, df_name):
+				setattr(new_doc, df_name, today_str if "date" in df_name else plus_30)
+
+		# Resolve default warehouse for stock operations
+		pref_warehouse = (
+			frappe.db.get_value("Warehouse", {"company": company, "is_group": 0, "name": ["like", "%Finished Goods%"]}, "name") or
+			frappe.db.get_value("Warehouse", {"company": company, "is_group": 0, "name": ["like", "%Stores%"]}, "name") or
+			frappe.db.get_value("Warehouse", {"company": company, "is_group": 0}, "name")
+		)
+
+		# Transfer items with explicit source linkages
+		source_items = doc_data.get("items") or source_doc.get("items") or []
+		if hasattr(new_doc, "items") and source_items:
+			for sit in source_items:
+				row = {
+					"item_code": sit.get("item_code") or sit.get("code") or "Standard Item",
+					"item_name": sit.get("item_name") or sit.get("description") or "",
+					"description": sit.get("description") or sit.get("item_code") or "",
+					"qty": float(sit.get("qty") or 1.0),
+					"rate": float(sit.get("rate") or 0.0),
+					"uom": sit.get("uom") or sit.get("unit") or "Nos",
+					"amount": float(sit.get("amount") or (float(sit.get("qty") or 1.0) * float(sit.get("rate") or 0.0)))
+				}
+				if pref_warehouse:
+					row["warehouse"] = sit.get("warehouse") or pref_warehouse
+
+				# Add source document linkage fields according to ERPNext schema
+				if target_doctype == "Sales Order" and real_source_doctype == "Quotation":
+					row["prevdoc_doctype"] = "Quotation"
+					row["prevdoc_docname"] = source_name
+				elif target_doctype == "Purchase Order" and real_source_doctype == "Sales Order":
+					row["sales_order"] = source_name
+				elif target_doctype == "Delivery Note" and real_source_doctype == "Sales Order":
+					row["against_sales_order"] = source_name
+				elif target_doctype == "Sales Invoice" and real_source_doctype == "Delivery Note":
+					row["delivery_note"] = source_name
+				elif target_doctype == "Sales Invoice" and real_source_doctype == "Sales Order":
+					row["sales_order"] = source_name
+				elif target_doctype == "Purchase Receipt" and real_source_doctype == "Purchase Order":
+					row["purchase_order"] = source_name
+				elif target_doctype == "Purchase Invoice" and real_source_doctype == "Purchase Order":
+					row["purchase_order"] = source_name
+
+				new_doc.append("items", row)
+
+	# Apply any user overrides from modal
+	if doc_data.get("fields"):
+		for k, v in doc_data["fields"].items():
+			if hasattr(new_doc, k):
+				setattr(new_doc, k, v)
+
+	# Specific DocType requirements
+	if target_doctype == "Sales Order":
+		if not getattr(new_doc, "delivery_date", None):
+			new_doc.delivery_date = frappe.utils.add_days(frappe.utils.today(), 30)
+		if not getattr(new_doc, "po_no", None):
+			base_po = f"PO-{source_name}"
+			if frappe.db.exists("Sales Order", {"customer": new_doc.customer, "po_no": base_po, "docstatus": ["!=", 2]}):
+				new_doc.po_no = f"{base_po}-{frappe.generate_hash(length=4).upper()}"
+			else:
+				new_doc.po_no = base_po
+		if not getattr(new_doc, "po_date", None):
+			new_doc.po_date = frappe.utils.today()
+	elif target_doctype == "Purchase Order":
+		if not getattr(new_doc, "schedule_date", None):
+			new_doc.schedule_date = frappe.utils.add_days(frappe.utils.today(), 14)
+	elif target_doctype == "Delivery Note":
+		if not getattr(new_doc, "posting_date", None):
+			new_doc.posting_date = frappe.utils.today()
+	elif target_doctype == "Sales Invoice":
+		if not getattr(new_doc, "posting_date", None):
+			new_doc.posting_date = frappe.utils.today()
+		if not getattr(new_doc, "due_date", None):
+			new_doc.due_date = frappe.utils.add_days(frappe.utils.today(), 30)
+	elif target_doctype == "ITS Review Event":
+		new_doc.project_id = project or "ITS-024"
+		new_doc.skid_id = source_name if real_source_doctype == "ITS Review Skid" else "SK-024"
+		new_doc.test = "FAT"
+		new_doc.witness = "Demo Client Inspector"
+		new_doc.planned_date = frappe.utils.add_days(frappe.utils.today(), 7)
+		new_doc.status = "Planned"
+	elif target_doctype == "ITS Review Commissioning":
+		new_doc.project_id = project or "ITS-024"
+		new_doc.skid_id = "SK-024"
+		new_doc.status = "In Progress"
+		new_doc.planned_date = frappe.utils.add_days(frappe.utils.today(), 14)
+		new_doc.engineer = frappe.session.user
+	elif target_doctype == "ITS Review Handover":
+		new_doc.project_id = project or "ITS-024"
+		new_doc.skid_id = "SK-024"
+		new_doc.status = "Pending Sign-off"
+		new_doc.cep = f"CEP-{project or 'ITS-024'}"
+		new_doc.date = frappe.utils.today()
+
+	try:
+		new_doc.insert(ignore_permissions=False)
+	except (IOError, OSError) as e:
+		if "wkhtmltopdf" in str(e) or "HostNotFoundError" in str(e):
+			frappe.log_error(f"Suppressed print generation error during document insert: {e}")
+		else:
+			raise
+
+	# Bi-directional activity logs
+	try:
+		new_doc.add_comment("Comment", f"Document created as next step from {real_source_doctype} {source_name} (BRD v1.2 workflow).")
+		source_doc.add_comment("Comment", f"Next step document {target_doctype} {new_doc.name} initiated.")
+	except Exception:
+		pass
+
+	frappe.db.commit()
+
+	return get_document_detail(target_doctype, new_doc.name)
+
+
 
