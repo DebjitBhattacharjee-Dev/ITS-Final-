@@ -1,4 +1,4 @@
-/* ITS interactive design model. In-memory sample records, not ERPNext or accounting software. */
+/* ITS interactive design model. In-memory sample records. */
 const DEPARTMENTS=['Commercial','Projects','Estimation','Procurement','Logistics','Quality','HR & Access','Service & Workshop','Finance','Management'];
 const SCHEMAS={};
 const F=(key,label,type='text',required=true,options=[])=>({key,label,type,required,options});

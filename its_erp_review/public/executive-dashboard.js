@@ -1,4 +1,4 @@
-/* Company-wide Executive Dashboard. 100% Live ERPNext Data Integration with Exact Drill-Down. */
+/* Company-wide Executive Dashboard. 100% Live Operations Data Integration with Exact Drill-Down. */
 (() => {
 	let scope = 'all';
 	let windowDays = 30;
@@ -18,7 +18,7 @@
 				view.innerHTML = `
 					<div class="empty" style="padding:80px 20px; text-align:center;">
 						<div style="font-size:36px; margin-bottom:16px; animation:spin 1.5s linear infinite;">⏳</div>
-						<h2 style="color:#071F4E; font-weight:800;">Connecting to ERPNext Database...</h2>
+						<h2 style="color:#071F4E; font-weight:800;">Connecting to Database...</h2>
 						<p class="muted">Loading live KPIs, department workload, and priority actions...</p>
 					</div>
 				`;
@@ -113,7 +113,7 @@
 				<div>
 					<div class="eyebrow">ITS · COMPANY OVERVIEW</div>
 					<h1>Operations dashboard</h1>
-					<p>Live ERPNext data — projects, people and commitments across the company.</p>
+					<p>Live system data — projects, people and commitments across the company.</p>
 				</div>
 				<div class="executive-date">
 					${dateText(todayStr)}
@@ -184,7 +184,7 @@
 							</div>
 						`;
 					}).join('')}
-					<p class="footer-note">Approval status measures live record review from ERPNext, not physical completion.</p>
+					<p class="footer-note">Approval status measures live record review, not physical completion.</p>
 				`)}
 
 				${box('Department workload', `
@@ -235,7 +235,7 @@
 							</span>
 						</a>
 					`).join('') || '<p>No recorded expiries in this window.</p>'}
-					<p class="footer-note">${expiries.length} matching documents in live ERPNext database.</p>
+					<p class="footer-note">${expiries.length} matching documents in system database.</p>
 					<a class="button" href="#list?key=due&days=${windowDays}">View All Upcoming Expiries →</a>
 				`, 'wide')}
 
@@ -261,7 +261,7 @@
 							</button>
 						`).join('')}
 					</div>
-					<p class="footer-note">Live record counts from Frappe HR and ERPNext.</p>
+					<p class="footer-note">Live record counts from system database.</p>
 				`)}
 			</div>
 
@@ -272,7 +272,7 @@
 				</div>
 			</section>
 
-			<p class="footer-note">All metrics are live queries against Frappe/ERPNext database with strict permission enforcement for current user session.</p>
+			<p class="footer-note">All metrics are live queries against the database with strict permission enforcement for current user session.</p>
 		`;
 	}
 

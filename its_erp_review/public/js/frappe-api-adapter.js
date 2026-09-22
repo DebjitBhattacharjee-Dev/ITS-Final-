@@ -1,4 +1,4 @@
-/* Frappe API Adapter for ITS ERP Review Portal */
+/* Frappe API Adapter for ITS Operations Platform */
 (function(window) {
 	const originalFetch = window.fetch;
 
@@ -149,7 +149,7 @@
 	// Override window.fetch for API route calls
 	window.fetch = window.frappeFetchAdapter;
 
-	// Single-Record ERPNext Document API helper methods
+	// Single-Record Document API helper methods
 	window.frappeDocApi = {
 		async getDetail(doctype, name) {
 			const res = await originalFetch(`/api/method/its_erp_review.api.documents.get_document_detail?doctype=${encodeURIComponent(doctype || '')}&name=${encodeURIComponent(name || '')}`, {
@@ -368,7 +368,7 @@
 		}
 	};
 
-	// Live ERPNext Executive Dashboard & Drill-Down API
+	// Live Operations Executive Dashboard & Drill-Down API
 	window.frappeDashboardApi = {
 		async getDashboardData(project = null, department = null, days = 30) {
 			const query = new URLSearchParams();

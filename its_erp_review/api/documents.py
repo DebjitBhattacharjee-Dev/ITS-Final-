@@ -1688,22 +1688,42 @@ def _ensure_supplier(name):
 def _ensure_project(project_id, company=None):
 	if not project_id:
 		return None
+	# 1. Exact ID match
 	if frappe.db.exists("Project", project_id):
 		return project_id
+
+	# 2. Check if project_id matches project_name
+	existing_by_name = frappe.db.get_value("Project", {"project_name": project_id}, "name")
+	if existing_by_name:
+		return existing_by_name
+
+	# 3. If in ITS Review Project, check its project_name or existing link
 	irp = frappe.db.get_value("ITS Review Project", project_id, ["project_name", "customer"], as_dict=True)
+	if irp and irp.project_name:
+		existing_by_irp_name = frappe.db.get_value("Project", {"project_name": irp.project_name}, "name")
+		if existing_by_irp_name:
+			return existing_by_irp_name
+
+	# 4. If not found anywhere, create with guaranteed unique project_name
+	base_p_name = (irp.project_name if irp and irp.project_name else project_id)
+	p_name = base_p_name
+	suffix = 1
+	while frappe.db.exists("Project", {"project_name": p_name}):
+		p_name = f"{base_p_name} ({suffix})"
+		suffix += 1
+
 	try:
 		c_name = _ensure_customer(irp.customer) if (irp and irp.customer) else None
 		p = frappe.get_doc({
 			"doctype": "Project",
-			"name": project_id,
-			"project_name": (irp.project_name if irp else project_id),
+			"project_name": p_name,
 			"customer": c_name,
 			"status": "Open",
 			"company": company or frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
 		}).insert(ignore_permissions=True)
 		return p.name
 	except Exception:
-		return frappe.db.get_value("Project", {"project_name": project_id}, "name")
+		return frappe.db.get_value("Project", {}, "name")
 
 def _ensure_item_code(code=None, is_sales=True):
 	if code and frappe.db.exists("Item", code):
@@ -2079,21 +2099,21 @@ def create_next_document(source_doctype=None, source_name=None, target_doctype=N
 					if pref_warehouse:
 						row["warehouse"] = sit.get("warehouse") or pref_warehouse
 
-					# Add source document linkage fields according to ERPNext schema
-					if target_doctype == "Sales Order" and real_source_doctype in ["Quotation", "ITS Review Document"]:
+					# Add source document linkage fields ONLY if source document actually exists in the foreign DocType
+					if target_doctype == "Sales Order" and frappe.db.exists("Quotation", source_name):
 						row["prevdoc_doctype"] = "Quotation"
 						row["prevdoc_docname"] = source_name
-					elif target_doctype == "Purchase Order" and real_source_doctype in ["Sales Order", "ITS Review Document"]:
+					elif target_doctype == "Purchase Order" and frappe.db.exists("Sales Order", source_name):
 						row["sales_order"] = source_name
-					elif target_doctype == "Delivery Note" and real_source_doctype in ["Sales Order", "ITS Review Document"]:
+					elif target_doctype == "Delivery Note" and frappe.db.exists("Sales Order", source_name):
 						row["against_sales_order"] = source_name
-					elif target_doctype == "Sales Invoice" and real_source_doctype == "Delivery Note":
+					elif target_doctype == "Sales Invoice" and frappe.db.exists("Delivery Note", source_name):
 						row["delivery_note"] = source_name
-					elif target_doctype == "Sales Invoice" and real_source_doctype in ["Sales Order", "ITS Review Document"]:
+					elif target_doctype == "Sales Invoice" and frappe.db.exists("Sales Order", source_name):
 						row["sales_order"] = source_name
-					elif target_doctype == "Purchase Receipt" and real_source_doctype in ["Purchase Order", "ITS Review Document"]:
+					elif target_doctype == "Purchase Receipt" and frappe.db.exists("Purchase Order", source_name):
 						row["purchase_order"] = source_name
-					elif target_doctype == "Purchase Invoice" and real_source_doctype in ["Purchase Order", "ITS Review Document"]:
+					elif target_doctype == "Purchase Invoice" and frappe.db.exists("Purchase Order", source_name):
 						row["purchase_order"] = source_name
 
 					new_doc.append("items", row)

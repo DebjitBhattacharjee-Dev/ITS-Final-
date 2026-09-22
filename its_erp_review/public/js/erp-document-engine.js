@@ -1,4 +1,4 @@
-/* ERPNext Single-Record Document Detail Engine with Workflow Approvals and Executive Styling */
+/* Single-Record Document Detail Engine with Workflow Approvals and Executive Styling */
 (function(window) {
 	let currentDoc = null;
 	let currentTab = 'details';
@@ -76,7 +76,7 @@
 				view.innerHTML = `
 					<div class="empty" style="padding:60px 20px; text-align:center;">
 						<h1 style="color:#DC2626; font-size:26px;">403 · Access Restricted</h1>
-						<p style="color:#475569; max-width:500px; margin:12px auto;">Your active session does not possess permission to view record <strong>${esc(name)}</strong> in DocType <strong>${esc(doctype || 'ERPNext')}</strong>.</p>
+						<p style="color:#475569; max-width:500px; margin:12px auto;">Your active session does not possess permission to view record <strong>${esc(name)}</strong> in DocType <strong>${esc(doctype || 'System')}</strong>.</p>
 						<div style="margin-top:20px"><a class="button primary" href="#home">Back to workspace</a></div>
 					</div>
 				`;
@@ -363,7 +363,7 @@
 			// CATEGORY B: Submittable Document Actions
 			else if (wf.progress_mode === 'submission') {
 				if (wf.can_submit) {
-					actionsHtml += `<button class="button primary" style="background:#002B49;" data-submission-action="Submit">Official ERP Submission (Submit)</button>`;
+					actionsHtml += `<button class="button primary" style="background:#002B49;" data-submission-action="Submit">Official Submission (Submit)</button>`;
 				}
 				if (wf.can_cancel) {
 					actionsHtml += `<button class="button danger" data-submission-action="Cancel">Cancel Document</button>`;
@@ -461,7 +461,7 @@
 						</div>
 						<div class="check ${d.docstatus === 1 ? '' : 'pending'}">
 							<span class="mark">${d.docstatus === 1 ? '✓' : '○'}</span>
-							ERP Submission Lock
+							Submission Lock
 						</div>
 						<div class="check ${(d.attachments || []).length > 0 ? '' : 'pending'}">
 							<span class="mark">${(d.attachments || []).length > 0 ? '✓' : '○'}</span>
@@ -481,8 +481,8 @@
 			return wf.current_state || 'In Review';
 		}
 		if (wf && wf.progress_mode === 'submission') {
-			if (d.docstatus === 1) return 'Submitted & Locked in ERPNext';
-			if (d.docstatus === 2) return 'Cancelled in ERPNext';
+			if (d.docstatus === 1) return 'Submitted & Locked in System';
+			if (d.docstatus === 2) return 'Cancelled in System';
 			return 'Draft Initiation';
 		}
 		return d.status || 'Active Master Record';
@@ -498,11 +498,11 @@
 			return `Current state: "${wf.current_state}". Final workflow state reached.`;
 		}
 		if (wf && wf.progress_mode === 'submission') {
-			if (d.docstatus === 1) return 'This record has been officially submitted and validated in ERPNext.';
+			if (d.docstatus === 1) return 'This record has been officially submitted and validated in the system.';
 			if (d.docstatus === 2) return 'This record was cancelled.';
-			return 'Document is in draft state. Click "Official ERP Submission" to submit.';
+			return 'Document is in draft state. Click "Official Submission" to submit.';
 		}
-		return 'Standard ERPNext master record. Changes and links are managed directly with native permissions.';
+		return 'Standard master record. Changes and links are managed directly with native permissions.';
 	}
 
 	function renderTabContent() {

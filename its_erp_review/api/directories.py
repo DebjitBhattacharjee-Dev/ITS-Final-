@@ -44,7 +44,7 @@ def get_parties():
 					"taxId": c.tax_id or "",
 					"paymentTerms": "30 Days",
 					"status": "Active",
-					"notes": "ERPNext Customer"
+					"notes": "Active Customer"
 				})
 
 	# Fetch native ERPNext Suppliers
@@ -66,7 +66,7 @@ def get_parties():
 					"taxId": s.tax_id or "",
 					"paymentTerms": "30 Days",
 					"status": "Active",
-					"notes": "ERPNext Supplier"
+					"notes": "Active Supplier"
 				})
 
 	token = frappe.sessions.get_csrf_token() if getattr(frappe.local, "session_obj", None) else ""
