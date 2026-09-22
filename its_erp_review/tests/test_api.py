@@ -8,6 +8,12 @@ from its_erp_review.api.materials import get_materials
 from its_erp_review.api.registers import get_registers
 
 class TestITSERPReviewAPI(unittest.TestCase):
+	@classmethod
+	def setUpClass(cls):
+		if not getattr(frappe.local, "site", None):
+			frappe.init(site="frappe.com", sites_path="/home/frappe/frappe-bench/sites")
+			frappe.connect()
+
 	def setUp(self):
 		frappe.set_user("Administrator")
 

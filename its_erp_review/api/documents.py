@@ -1,6 +1,7 @@
 import frappe
 import json
 from frappe import _
+from its_erp_review.api.gates import validate_document_gates
 
 if not hasattr(frappe, "ConcurrencyError"):
 	class ConcurrencyError(frappe.ValidationError):
@@ -813,7 +814,8 @@ def execute_document_workflow_action(doctype=None, name=None, action=None, expec
 				action, name
 			), frappe.PermissionError)
 
-		# Apply native workflow transition
+		# Apply native workflow transition with BRD business gates
+		validate_document_gates(doc, action)
 		doc = frappe.model.workflow.apply_workflow(doc, action)
 		frappe.db.commit()
 
@@ -828,6 +830,7 @@ def execute_document_workflow_action(doctype=None, name=None, action=None, expec
 				frappe.throw(_("Access Denied: You do not have permission to submit {0}").format(name), frappe.PermissionError)
 			if doc.docstatus != 0:
 				frappe.throw(_("Document {0} is not in Draft state (current docstatus: {1})").format(name, doc.docstatus))
+			validate_document_gates(doc, action)
 			doc.submit()
 			doc.add_comment("Workflow", "Submitted")
 			frappe.db.commit()
