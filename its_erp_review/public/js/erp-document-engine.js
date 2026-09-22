@@ -278,6 +278,26 @@
 				prerequisite: 'Project active.'
 			}
 		};
+
+		if (dt === 'ITS Review Document' || !mapping[dt]) {
+			const cat = (d.category || '').toLowerCase();
+			const title = (d.title || '').toLowerCase();
+			const pType = ((d.prototype_data && d.prototype_data.type) || '').toLowerCase();
+			const eff = pType || cat;
+
+			if (eff.includes('quot') || title.includes('quot')) return mapping['Quotation'];
+			if (eff.includes('order') || title.includes('order')) return mapping['Sales Order'];
+			if (eff.includes('deliv') || title.includes('deliv')) return mapping['Delivery Note'];
+			if (eff.includes('invoic') || title.includes('invoic')) return mapping['Sales Invoice'];
+			if (eff.includes('purch') || title.includes('purch') || eff === 'po') return mapping['Purchase Order'];
+			if (eff.includes('mater') || eff === 'mr') return mapping['Material Request'];
+			if (eff.includes('inquir') || eff.includes('rfq')) return mapping['Opportunity'];
+			if (eff.includes('commiss') || title.includes('commiss')) return mapping['ITS Review Commissioning'];
+			if (eff.includes('handov') || title.includes('handov')) return mapping['ITS Review Handover'];
+			if (eff.includes('punch') || title.includes('punch')) return mapping['ITS Review Punch'];
+			if (eff.includes('fat') || eff.includes('test') || eff.includes('inspect')) return mapping['ITS Review Skid'];
+		}
+
 		return mapping[dt] || {
 			targetDoctype: 'Sales Order',
 			label: 'Next Step Document',
